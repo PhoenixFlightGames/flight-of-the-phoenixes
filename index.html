@@ -29,10 +29,10 @@ canvas {
   inset: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 28px;
+  align-items: center;
   text-align: center;
+  padding: 28px;
   color: white;
   background: rgba(8, 9, 20, .93);
 }
@@ -63,20 +63,16 @@ button {
   font-size: 22px;
   font-weight: bold;
 }
-
-button:active {
-  background: #763151;
-}
 </style>
 </head>
 
 <body>
-anvas id="game" width="420" height="760"></canvas>
+<canvas id="game" width="420" height="760"></canvas>
 
 <div id="menu">
   <h1>FLIGHT OF THE<br>PHOENIXES</h1>
-  <p>Hold the screen to rise. Release to glide.<br>Avoid the volcanic spires and fly as far as you can.</p>
-  <<button id="startButton" onclick="startGame()">Endless Flight</button>
+  <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and fly as far as you can.</p>
+  <button onclick="startGame()">Endless Flight</button>
   <p id="bestText">Best: 0 m</p>
 </div>
 
@@ -84,35 +80,37 @@ anvas id="game" width="420" height="760"></canvas>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
-const startButton = document.getElementById("startButton");
 const bestText = document.getElementById("bestText");
 
 let playing = false;
 let holding = false;
-let bird, obstacles, embers, distance, seconds, lastTime;
-let best = Number(localStorage.getItem("phoenixBest")) || 0;
+let bird;
+let obstacles;
+let distance;
+let seconds;
+let lastTime;
 
+let best = Number(localStorage.getItem("phoenixBest")) || 0;
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
 
 function startGame() {
+  playing = true;
+  holding = false;
+
   bird = {
-    x: 105,
+    x: 95,
     y: 380,
     velocity: 0,
-    radius: 24,
-    wing: 0
+    radius: 19
   };
 
   obstacles = [];
-  embers = [];
   distance = 0;
   seconds = 0;
-  holding = false;
-  playing = true;
   lastTime = performance.now();
 
   menu.style.display = "none";
-  requestAnimationFrame(loop);
+  requestAnimationFrame(gameLoop);
 }
 
 canvas.addEventListener("touchstart", function(event) {
@@ -138,29 +136,18 @@ window.addEventListener("mouseup", function() {
 });
 
 function addObstacle() {
-  const gap = 225;
-  const center = 165 + Math.random() * 430;
+  const gap = 220;
+  const middle = 160 + Math.random() * 440;
 
   obstacles.push({
     x: 440,
-    width: 72,
-    top: center - gap / 2,
-    bottom: center + gap / 2
+    width: 55,
+    top: middle - gap / 2,
+    bottom: middle + gap / 2
   });
 }
 
-function addEmber() {
-  embers.push({
-    x: bird.x - 22,
-    y: bird.y + (Math.random() * 22 - 11),
-    vx: -50 - Math.random() * 70,
-    vy: Math.random() * 50 - 25,
-    life: 0.55 + Math.random() * 0.35,
-    size: 2 + Math.random() * 4
-  });
-}
-
-function finishGame() {
+function gameOver() {
   if (!playing) return;
 
   playing = false;
@@ -174,33 +161,23 @@ function finishGame() {
   menu.style.display = "flex";
 }
 
-function loop(now) {
+function gameLoop(now) {
   if (!playing) return;
 
   const dt = Math.min(0.03, (now - lastTime) / 1000);
   lastTime = now;
+
   seconds += dt;
 
   bird.velocity += (holding ? -720 : 920) * dt;
   bird.velocity = Math.max(-360, Math.min(420, bird.velocity));
   bird.y += bird.velocity * dt;
-  bird.wing += dt * (holding ? 18 : 11);
 
   distance += 52 * dt;
 
-  if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 245) {
+  if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 235) {
     addObstacle();
   }
-
-  addEmber();
-
-  for (const ember of embers) {
-    ember.x += ember.vx * dt;
-    ember.y += ember.vy * dt;
-    ember.life -= dt;
-  }
-
-  embers = embers.filter(ember => ember.life > 0);
 
   for (const obstacle of obstacles) {
     obstacle.x -= 155 * dt;
@@ -213,223 +190,78 @@ function loop(now) {
       bird.y - bird.radius < obstacle.top ||
       bird.y + bird.radius > obstacle.bottom;
 
-    if (hitSide && hitObstacle) finishGame();
+    if (hitSide && hitObstacle) {
+      gameOver();
+    }
   }
 
-  obstacles = obstacles.filter(obstacle => obstacle.x > -90);
+  obstacles = obstacles.filter(obstacle => obstacle.x > -70);
 
   if (bird.y - bird.radius < 0 || bird.y + bird.radius > 760) {
-    finishGame();
+    gameOver();
   }
 
-  draw();
-  requestAnimationFrame(loop);
+  drawGame();
+  requestAnimationFrame(gameLoop);
 }
 
-function drawMountain(x, base, width, height, color) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(x, base);
-  ctx.lineTo(x + width * .5, base - height);
-  ctx.lineTo(x + width, base);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawSpire(x, top, width, height, upsideDown) {
-  ctx.fillStyle = "#24151a";
-  ctx.strokeStyle = "#8d3a25";
-  ctx.lineWidth = 3;
-
-  ctx.beginPath();
-
-  if (upsideDown) {
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + width, 0);
-    ctx.lineTo(x + width * .78, top - 22);
-    ctx.lineTo(x + width * .48, top);
-    ctx.lineTo(x + width * .2, top - 32);
-    ctx.closePath();
-  } else {
-    ctx.moveTo(x, 760);
-    ctx.lineTo(x + width, 760);
-    ctx.lineTo(x + width * .78, top + height + 22);
-    ctx.lineTo(x + width * .48, top + height);
-    ctx.lineTo(x + width * .2, top + height + 32);
-    ctx.closePath();
-  }
-
-  ctx.fill();
-  ctx.stroke();
-}
-
-function drawPhoenix() {
-  const tilt = bird.velocity / 780;
-  const flap = Math.sin(bird.wing) * 0.7;
-
-  ctx.save();
-  ctx.translate(bird.x, bird.y);
-  ctx.rotate(tilt);
-
-  ctx.shadowBlur = 22;
-  ctx.shadowColor = "#ff5428";
-
-  /* Fiery tail feathers */
-  ctx.fillStyle = "#d94120";
-  ctx.beginPath();
-  ctx.moveTo(-15, 2);
-  ctx.quadraticCurveTo(-42, -8, -55, -25);
-  ctx.quadraticCurveTo(-39, 2, -57, 20);
-  ctx.quadraticCurveTo(-34, 13, -15, 8);
-  ctx.fill();
-
-  ctx.fillStyle = "#ff9b32";
-  ctx.beginPath();
-  ctx.moveTo(-14, 4);
-  ctx.quadraticCurveTo(-43, 8, -54, 36);
-  ctx.quadraticCurveTo(-30, 23, -8, 12);
-  ctx.fill();
-
-  /* Back wing */
-  ctx.fillStyle = "#b62f22";
-  ctx.beginPath();
-  ctx.moveTo(-4, -2);
-  ctx.quadraticCurveTo(-5, -43 - flap * 15, 22, -48 - flap * 10);
-  ctx.quadraticCurveTo(12, -20, 6, 0);
-  ctx.fill();
-
-  /* Main body */
-  ctx.fillStyle = "#e84923";
-  ctx.beginPath();
-  ctx.ellipse(3, 1, 25, 16, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* Gold chest */
-  ctx.fillStyle = "#ffba43";
-  ctx.beginPath();
-  ctx.ellipse(10, 4, 14, 10, .2, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* Front wing */
-  ctx.fillStyle = "#ff702b";
-  ctx.beginPath();
-  ctx.moveTo(0, -2);
-  ctx.quadraticCurveTo(8, -42 + flap * 15, 35, -37 + flap * 10);
-  ctx.quadraticCurveTo(24, -9, 9, 8);
-  ctx.closePath();
-  ctx.fill();
-
-  /* Wing feather tips */
-  ctx.strokeStyle = "#ffd263";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.moveTo(12, -17);
-  ctx.lineTo(29, -34);
-  ctx.moveTo(6, -12);
-  ctx.lineTo(22, -38);
-  ctx.moveTo(-1, -8);
-  ctx.lineTo(12, -35);
-  ctx.stroke();
-
-  /* Phoenix head */
-  ctx.fillStyle = "#ff842f";
-  ctx.beginPath();
-  ctx.arc(24, -9, 12, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* Beak */
-  ctx.fillStyle = "#ffd15b";
-  ctx.beginPath();
-  ctx.moveTo(34, -10);
-  ctx.lineTo(46, -6);
-  ctx.lineTo(34, -2);
-  ctx.closePath();
-  ctx.fill();
-
-  /* Glowing eye */
-  ctx.fillStyle = "#fff4a0";
-  ctx.beginPath();
-  ctx.arc(27, -12, 3.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "#401019";
-  ctx.beginPath();
-  ctx.arc(28, -12, 1.3, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* Crown flame feathers */
-  ctx.strokeStyle = "#ffbd42";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(19, -18);
-  ctx.lineTo(17, -32);
-  ctx.moveTo(23, -19);
-  ctx.lineTo(26, -34);
-  ctx.moveTo(27, -18);
-  ctx.lineTo(34, -29);
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function draw() {
+function drawGame() {
   const sky = ctx.createLinearGradient(0, 0, 0, 760);
-  sky.addColorStop(0, "#31132f");
-  sky.addColorStop(.58, "#160f20");
-  sky.addColorStop(1, "#090911");
+  sky.addColorStop(0, "#2b102d");
+  sky.addColorStop(1, "#080914");
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, 420, 760);
 
-  /* Ash and embers in background */
-  for (let i = 0; i < 20; i++) {
-    const x = (i * 67 + seconds * 18) % 430;
-    const y = (i * 113) % 690 + 45;
-    ctx.fillStyle = "rgba(255,151,52,.25)";
-    ctx.fillRect(x, y, 2, 2);
-  }
-
-  /* Distant volcanic mountains */
-  drawMountain(-80, 650, 200, 180, "#17101a");
-  drawMountain(70, 650, 230, 150, "#1a1018");
-  drawMountain(250, 650, 210, 205, "#160d15");
-
-  /* Lava horizon */
-  ctx.fillStyle = "#5d211a";
-  ctx.fillRect(0, 685, 420, 75);
-
-  ctx.fillStyle = "#bf4424";
-  ctx.fillRect(0, 697, 420, 8);
-
   for (const obstacle of obstacles) {
-    drawSpire(obstacle.x, obstacle.top, obstacle.width, obstacle.top, true);
-    drawSpire(
+    ctx.fillStyle = "#2c1820";
+    ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
+    ctx.fillRect(
       obstacle.x,
       obstacle.bottom,
       obstacle.width,
-      760 - obstacle.bottom,
-      false
+      760 - obstacle.bottom
+    );
+
+    ctx.strokeStyle = "#ff8c36";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
+    ctx.strokeRect(
+      obstacle.x,
+      obstacle.bottom,
+      obstacle.width,
+      760 - obstacle.bottom
     );
   }
 
-  for (const ember of embers) {
-    ctx.fillStyle = "rgba(255, " + Math.floor(120 + ember.life * 130) + ", 40, " + ember.life + ")";
-    ctx.beginPath();
-    ctx.arc(ember.x, ember.y, ember.size * ember.life, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  ctx.save();
+  ctx.translate(bird.x, bird.y);
+  ctx.rotate(bird.velocity / 650);
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = "#ff542f";
 
-  drawPhoenix();
+  ctx.fillStyle = "#ff842f";
+  ctx.beginPath();
+  ctx.moveTo(-25, 0);
+  ctx.quadraticCurveTo(-4, -27, 24, -8);
+  ctx.quadraticCurveTo(32, 0, 24, 8);
+  ctx.quadraticCurveTo(-4, 27, -25, 0);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffe16e";
+  ctx.beginPath();
+  ctx.arc(9, -5, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 
   ctx.fillStyle = "white";
   ctx.font = "bold 20px Arial";
-  ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 33);
+  ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
 
   ctx.font = "16px Arial";
-  ctx.fillText(seconds.toFixed(1) + " s", 16, 57);
+  ctx.fillText(seconds.toFixed(1) + " s", 16, 56);
 
   ctx.textAlign = "right";
-  ctx.fillStyle = "#ffd06a";
-  ctx.fillText("ASHLANDS", 402, 33);
+  ctx.fillText("ASHLANDS", 402, 32);
   ctx.textAlign = "left";
 }
 </script>
