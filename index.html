@@ -1,83 +1,209 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Flight of the Phoenixes</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#090b18;overflow:hidden;font-family:Arial;color:white}
-canvas{width:100vw;height:100vh;object-fit:contain;touch-action:none}
-#menu{
-  position:fixed;inset:0;display:grid;place-content:center;text-align:center;
-  padding:24px;background:rgba(9,11,24,.92)
-}
-h1{color:#ffc65a;font-size:38px;text-shadow:0 0 20px #ff542f}
-p{max-width:340px;color:#ddd;line-height:1.45}
-button{
-  margin:8px;padding:15px 22px;border:1px solid #ffc65a;border-radius:12px;
-  background:#49233d;color:white;font-size:18px;font-weight:bold
-}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Flight of the Phoenixes</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%;
+      overflow: hidden; background: #080914;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block; width: 100vw; height: 100vh;
+      touch-action: none;
+    }
+    #menu {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 28px;
+      color: white; background: rgba(8,9,20,.93);
+    }
+    h1 {
+      margin: 0 0 28px; color: #ffc65a;
+      font-size: 40px; line-height: 1.15;
+      text-shadow: 0 0 20px #f05224;
+    }
+    p { max-width: 360px; font-size: 19px; line-height: 1.45; color: #e1dbe5; }
+    button {
+      width: min(360px, 86vw); margin: 22px 0 12px;
+      padding: 18px; border: 2px solid #ffc65a; border-radius: 14px;
+      background: #592540; color: white; font-size: 22px; font-weight: bold;
+    }
+    button:active { background: #763151; }
+  </style>
 </head>
 <body>
+  <canvas id="game" width="420" height="760"></canvas>
 
-<canvas id="game" width="420" height="760"></canvas>
+  <div id="menu">
+    <h1>FLIGHT OF THE<br>PHOENIXES</h1>
+    <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and fly as far as you can.</p>
+    <button id="startButton">Endless Flight</button>
+    <p id="bestText">Best: 0 m</p>
+  </div>
 
-<div id="menu">
-  <h1>FLIGHT OF THE<br>PHOENIXES</h1>
-  <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and fly as far as you can.</p>
-  <button onclick="startGame()">Endless Flight</button>
-  <p id="best">Best: 0 m</p>
-</div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const menu = document.getElementById("menu");
+    const startButton = document.getElementById("startButton");
+    const bestText = document.getElementById("bestText");
 
-<script>
-const canvas=document.getElementById("game");
-const ctx=canvas.getContext("2d");
-const menu=document.getElementById("menu");
-const bestText=document.getElementById("best");
+    let playing = false;
+    let holding = false;
+    let bird, obstacles, distance, seconds, lastTime;
+    let best = Number(localStorage.getItem("phoenixBest")) || 0;
 
-let playing=false;
-let holding=false;
-let phoenix, obstacles, distance, seconds, lastTime, nextGate, zone;
-let best=Number(localStorage.getItem("phoenixBest"))||0;
+    bestText.textContent = "Best: " + best.toLocaleString() + " m";
 
-bestText.textContent="Best: "+best.toLocaleString()+" m";
+    function startGame() {
+      bird = { x: 95, y: 380, velocity: 0, radius: 19 };
+      obstacles = [];
+      distance = 0;
+      seconds = 0;
+      holding = false;
+      playing = true;
+      lastTime = performance.now();
+      menu.style.display = "none";
+      requestAnimationFrame(loop);
+    }
 
-function startGame(){
-  playing=true;
-  holding=false;
-  phoenix={x:92,y:380,velocity:0,radius:19};
-  obstacles=[];
-  distance=0;
-  seconds=0;
-  nextGate=2000;
-  zone=0;
-  lastTime=performance.now();
-  menu.style.display="none";
-  requestAnimationFrame(gameLoop);
-}
+    startButton.addEventListener("click", startGame);
+    startButton.addEventListener("touchend", function(event) {
+      event.preventDefault();
+      startGame();
+    }, { passive: false });
 
-canvas.addEventListener("pointerdown",function(e){
-  e.preventDefault();
-  holding=true;
-});
-window.addEventListener("pointerup",function(){
-  holding=false;
-});
+    canvas.addEventListener("touchstart", function(event) {
+      event.preventDefault();
+      holding = true;
+    }, { passive: false });
 
-function makeObstacle(){
-  const gap=Math.max(145,215-zone*14);
-  const middle=160+Math.random()*440;
-  obstacles.push({
-    x:440,
-    width:55,
-    top:middle-gap/2,
-    bottom:middle+gap/2
-  });
-}
+    canvas.addEventListener("touchend", function(event) {
+      event.preventDefault();
+      holding = false;
+    }, { passive: false });
 
-function gameOver(){
-  if(!playing)return;
-  playing=false;
-  best=Math.max(best,Math.floor(distance));
+    canvas.addEventListener("mousedown", function() {
+      holding = true;
+    });
+
+    window.addEventListener("mouseup", function() {
+      holding = false;
+    });
+
+    function addObstacle() {
+      const gap = 220;
+      const center = 160 + Math.random() * 440;
+      obstacles.push({
+        x: 440,
+        width: 55,
+        top: center - gap / 2,
+        bottom: center + gap / 2
+      });
+    }
+
+    function finishGame() {
+      if (!playing) return;
+      playing = false;
+      best = Math.max(best, Math.floor(distance));
+      localStorage.setItem("phoenixBest", best);
+      bestText.innerHTML =
+        "Flight ended at <b>" + Math.floor(distance).toLocaleString() +
+        " m</b><br>Best: " + best.toLocaleString() + " m";
+      menu.style.display = "flex";
+    }
+
+    function loop(now) {
+      if (!playing) return;
+
+      const dt = Math.min(0.03, (now - lastTime) / 1000);
+      lastTime = now;
+      seconds += dt;
+
+      bird.velocity += (holding ? -720 : 920) * dt;
+      bird.velocity = Math.max(-360, Math.min(420, bird.velocity));
+      bird.y += bird.velocity * dt;
+      distance += 52 * dt;
+
+      if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 235) {
+        addObstacle();
+      }
+
+      for (const obstacle of obstacles) {
+        obstacle.x -= 155 * dt;
+
+        const hitSide =
+          bird.x + bird.radius > obstacle.x &&
+          bird.x - bird.radius < obstacle.x + obstacle.width;
+
+        const hitObstacle =
+          bird.y - bird.radius < obstacle.top ||
+          bird.y + bird.radius > obstacle.bottom;
+
+        if (hitSide && hitObstacle) finishGame();
+      }
+
+      obstacles = obstacles.filter(obstacle => obstacle.x > -70);
+
+      if (bird.y - bird.radius < 0 || bird.y + bird.radius > 760) {
+        finishGame();
+      }
+
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function draw() {
+      const sky = ctx.createLinearGradient(0, 0, 0, 760);
+      sky.addColorStop(0, "#2c102d");
+      sky.addColorStop(1, "#080914");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, 420, 760);
+
+      for (const obstacle of obstacles) {
+        ctx.fillStyle = "#321923";
+        ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
+        ctx.fillRect(obstacle.x, obstacle.bottom, obstacle.width, 760 - obstacle.bottom);
+        ctx.strokeStyle = "#ff8e38";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
+        ctx.strokeRect(obstacle.x, obstacle.bottom, obstacle.width, 760 - obstacle.bottom);
+      }
+
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+      ctx.rotate(bird.velocity / 650);
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = "#ff5928";
+
+      ctx.fillStyle = "#ff8230";
+      ctx.beginPath();
+      ctx.moveTo(-25, 0);
+      ctx.quadraticCurveTo(-4, -28, 24, -8);
+      ctx.quadraticCurveTo(32, 0, 24, 8);
+      ctx.quadraticCurveTo(-4, 28, -25, 0);
+      ctx.fill();
+
+      ctx.fillStyle = "#ffe26d";
+      ctx.beginPath();
+      ctx.arc(9, -5, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.fillStyle = "white";
+      ctx.font = "bold 20px Arial";
+      ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
+      ctx.font = "16px Arial";
+      ctx.fillText(seconds.toFixed(1) + " s", 16, 56);
+      ctx.textAlign = "right";
+      ctx.fillText("ASHLANDS", 402, 32);
+      ctx.textAlign = "left";
+    }
+  </script>
+</body>
+</html>
