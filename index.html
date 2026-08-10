@@ -233,25 +233,68 @@ function drawGame() {
     );
   }
 
-  ctx.save();
-  ctx.translate(bird.x, bird.y);
-  ctx.rotate(bird.velocity / 650);
-  ctx.shadowBlur = 20;
-  ctx.shadowColor = "#ff542f";
+ ctx.save();
+ctx.translate(bird.x, bird.y);
+ctx.rotate(bird.velocity / 650);
+ctx.shadowBlur = 20;
+ctx.shadowColor = "#ff542f";
 
-  ctx.fillStyle = "#ff842f";
-  ctx.beginPath();
-  ctx.moveTo(-25, 0);
-  ctx.quadraticCurveTo(-4, -27, 24, -8);
-  ctx.quadraticCurveTo(32, 0, 24, 8);
-  ctx.quadraticCurveTo(-4, 27, -25, 0);
-  ctx.fill();
+/* Fiery tail feathers */
+ctx.fillStyle = "#c83820";
+ctx.beginPath();
+ctx.moveTo(-13, 1);
+ctx.quadraticCurveTo(-42, -15, -55, -28);
+ctx.quadraticCurveTo(-45, 3, -58, 20);
+ctx.quadraticCurveTo(-33, 13, -13, 8);
+ctx.fill();
 
-  ctx.fillStyle = "#ffe16e";
-  ctx.beginPath();
-  ctx.arc(9, -5, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+ctx.fillStyle = "#ff9b32";
+ctx.beginPath();
+ctx.moveTo(-12, 5);
+ctx.quadraticCurveTo(-39, 12, -51, 34);
+ctx.quadraticCurveTo(-27, 24, -5, 11);
+ctx.fill();
+
+/* Ember Phoenix body */
+ctx.fillStyle = "#e84b24";
+ctx.beginPath();
+ctx.ellipse(1, 1, 24, 15, 0, 0, Math.PI * 2);
+ctx.fill();
+
+/* Gold chest */
+ctx.fillStyle = "#ffb842";
+ctx.beginPath();
+ctx.ellipse(10, 4, 13, 9, 0.2, 0, Math.PI * 2);
+ctx.fill();
+
+/* Phoenix head */
+ctx.fillStyle = "#ff7d2f";
+ctx.beginPath();
+ctx.arc(23, -9, 12, 0, Math.PI * 2);
+ctx.fill();
+
+/* Gold beak */
+ctx.fillStyle = "#ffd15b";
+ctx.beginPath();
+ctx.moveTo(33, -10);
+ctx.lineTo(46, -6);
+ctx.lineTo(33, -2);
+ctx.closePath();
+ctx.fill();
+
+/* Glowing eye */
+ctx.fillStyle = "#fff5a0";
+ctx.beginPath();
+ctx.arc(27, -12, 3.5, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.fillStyle = "#3c1017";
+ctx.beginPath();
+ctx.arc(28, -12, 1.3, 0, Math.PI * 2);
+ctx.fill();
+
+ctx.restore();
+
 
   ctx.fillStyle = "white";
   ctx.font = "bold 20px Arial";
