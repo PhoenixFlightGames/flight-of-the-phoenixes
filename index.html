@@ -82,7 +82,45 @@ const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
 const bestText = document.getElementById("bestText");
 const phoenixImage = new Image();
+let phoenixSprite = null;
+
+phoenixImage.onload = function() {
+  const spriteCanvas = document.createElement("canvas");
+  spriteCanvas.width = phoenixImage.naturalWidth;
+  spriteCanvas.height = phoenixImage.naturalHeight;
+
+  const spriteCtx = spriteCanvas.getContext("2d");
+  spriteCtx.drawImage(phoenixImage, 0, 0);
+
+  const pixels = spriteCtx.getImageData(
+    0,
+    0,
+    spriteCanvas.width,
+    spriteCanvas.height
+  );
+
+  for (let i = 0; i < pixels.data.length; i += 4) {
+    const red = pixels.data[i];
+    const green = pixels.data[i + 1];
+    const blue = pixels.data[i + 2];
+
+    const isNearWhite =
+      red > 215 &&
+      green > 215 &&
+      blue > 215 &&
+      Math.max(red, green, blue) - Math.min(red, green, blue) < 28;
+
+    if (isNearWhite) {
+      pixels.data[i + 3] = 0;
+    }
+  }
+
+  spriteCtx.putImageData(pixels, 0, 0);
+  phoenixSprite = spriteCanvas;
+};
+
 phoenixImage.src = "IMG_3821.jpeg";
+
 
 let playing = false;
 let holding = false;
@@ -244,8 +282,10 @@ function drawGame() {
   ctx.shadowBlur = 18;
   ctx.shadowColor = "#ff542f";
 
-  if (phoenixImage.complete && phoenixImage.naturalWidth > 0) {
-    ctx.drawImage(phoenixImage, -52, -52, 104, 104);
+  if (phoenixSprite) {
+
+    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
+
   } else {
     ctx.fillStyle = "#ff842f";
     ctx.beginPath();
