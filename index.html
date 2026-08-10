@@ -76,7 +76,7 @@ anvas id="game" width="420" height="760"></canvas>
 <div id="menu">
   <h1>FLIGHT OF THE<br>PHOENIXES</h1>
   <p>Hold the screen to rise. Release to glide.<br>Avoid the volcanic spires and fly as far as you can.</p>
-  <button id="startButton">Endless Flight</button>
+  <<button id="startButton" onclick="startGame()">Endless Flight</button>
   <p id="bestText">Best: 0 m</p>
 </div>
 
@@ -114,13 +114,6 @@ function startGame() {
   menu.style.display = "none";
   requestAnimationFrame(loop);
 }
-
-startButton.addEventListener("click", startGame);
-
-startButton.addEventListener("touchend", function(event) {
-  event.preventDefault();
-  startGame();
-}, { passive: false });
 
 canvas.addEventListener("touchstart", function(event) {
   event.preventDefault();
