@@ -6,9 +6,7 @@
 <title>Flight of the Phoenixes</title>
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -84,6 +82,9 @@ const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
 const bestText = document.getElementById("bestText");
 
+const W = 420;
+const H = 760;
+
 const phoenixImage = new Image();
 let phoenixSprite = null;
 
@@ -107,13 +108,13 @@ phoenixImage.onload = function() {
     const green = pixels.data[i + 1];
     const blue = pixels.data[i + 2];
 
-    const isNearWhite =
+    const nearWhite =
       red > 215 &&
       green > 215 &&
       blue > 215 &&
       Math.max(red, green, blue) - Math.min(red, green, blue) < 28;
 
-    if (isNearWhite) {
+    if (nearWhite) {
       pixels.data[i + 3] = 0;
     }
   }
@@ -132,6 +133,7 @@ let embers;
 let distance;
 let seconds;
 let lastTime;
+let level;
 
 let best = Number(localStorage.getItem("phoenixBest")) || 0;
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
@@ -141,8 +143,8 @@ function makeEmbers() {
 
   for (let i = 0; i < 42; i++) {
     particles.push({
-      x: Math.random() * 420,
-      y: Math.random() * 760,
+      x: Math.random() * W,
+      y: Math.random() * H,
       size: 1 + Math.random() * 2.5,
       speed: 14 + Math.random() * 32,
       drift: Math.random() * Math.PI * 2,
@@ -168,6 +170,7 @@ function startGame() {
   embers = makeEmbers();
   distance = 0;
   seconds = 0;
+  level = 0;
   lastTime = performance.now();
 
   menu.style.display = "none";
@@ -202,8 +205,12 @@ window.addEventListener("mouseup", function() {
 });
 
 function addObstacle() {
-  const gap = 220;
-  const middle = 160 + Math.random() * 440;
+  const gap = 220 - level * 8;
+  const minimumMiddle = gap / 2 + 42;
+  const maximumMiddle = H - gap / 2 - 42;
+  const middle =
+    minimumMiddle +
+    Math.random() * (maximumMiddle - minimumMiddle);
 
   obstacles.push({
     x: 440,
@@ -211,6 +218,20 @@ function addObstacle() {
     top: middle - gap / 2,
     bottom: middle + gap / 2
   });
+}
+
+function updateEmbers(dt) {
+  for (const ember of embers) {
+    ember.x -= ember.speed * dt;
+    ember.y += Math.sin(seconds * 2 + ember.drift) * 12 * dt;
+
+    if (ember.x < -8) {
+      ember.x = W + 8;
+      ember.y = Math.random() * H;
+      ember.size = 1 + Math.random() * 2.5;
+      ember.speed = 14 + Math.random() * 32;
+    }
+  }
 }
 
 function gameOver() {
@@ -227,20 +248,6 @@ function gameOver() {
   menu.style.display = "flex";
 }
 
-function updateEmbers(dt) {
-  for (const ember of embers) {
-    ember.x -= ember.speed * dt;
-    ember.y += Math.sin(seconds * 2 + ember.drift) * 12 * dt;
-
-    if (ember.x < -8) {
-      ember.x = 428;
-      ember.y = Math.random() * 760;
-      ember.size = 1 + Math.random() * 2.5;
-      ember.speed = 14 + Math.random() * 32;
-    }
-  }
-}
-
 function gameLoop(now) {
   if (!playing) return;
 
@@ -248,20 +255,34 @@ function gameLoop(now) {
   lastTime = now;
 
   seconds += dt;
+  distance += 52 * dt;
+
+  /*
+    Four gentle stages:
+    Level 1: 0 m
+    Level 2: 500 m
+    Level 3: 1,000 m
+    Level 4: 1,500 m and beyond
+  */
+  level = Math.min(3, Math.floor(distance / 500));
 
   bird.velocity += (holding ? -720 : 920) * dt;
   bird.velocity = Math.max(-360, Math.min(420, bird.velocity));
   bird.y += bird.velocity * dt;
 
-  distance += 52 * dt;
   updateEmbers(dt);
 
-  if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 235) {
+  if (
+    obstacles.length === 0 ||
+    obstacles[obstacles.length - 1].x < 235
+  ) {
     addObstacle();
   }
 
+  const obstacleSpeed = 155 + level * 10;
+
   for (const obstacle of obstacles) {
-    obstacle.x -= 155 * dt;
+    obstacle.x -= obstacleSpeed * dt;
 
     const hitSide =
       bird.x + bird.radius > obstacle.x &&
@@ -279,7 +300,7 @@ function gameLoop(now) {
 
   obstacles = obstacles.filter(obstacle => obstacle.x > -70);
 
-  if (bird.y - bird.radius < 0 || bird.y + bird.radius > 760) {
+  if (bird.y - bird.radius < 0 || bird.y + bird.radius > H) {
     gameOver();
     return;
   }
@@ -293,40 +314,40 @@ function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
 
   ctx.fillStyle = color;
   ctx.beginPath();
-  ctx.moveTo(-spacing - offset, 760);
+  ctx.moveTo(-spacing - offset, H);
 
-  for (let x = -spacing - offset; x < 420 + spacing; x += spacing) {
+  for (let x = -spacing - offset; x < W + spacing; x += spacing) {
     const peakX = x + spacing / 2;
     ctx.lineTo(x, baseY);
     ctx.lineTo(peakX, baseY - peakHeight);
     ctx.lineTo(x + spacing, baseY);
   }
 
-  ctx.lineTo(420 + spacing, 760);
+  ctx.lineTo(W + spacing, H);
   ctx.closePath();
   ctx.fill();
 }
 
 function drawAshlands() {
-  const sky = ctx.createLinearGradient(0, 0, 0, 760);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, "#35122f");
   sky.addColorStop(0.48, "#1a1022");
   sky.addColorStop(1, "#080914");
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, 420, 760);
+  ctx.fillRect(0, 0, W, H);
 
-  const horizonGlow = ctx.createRadialGradient(210, 590, 10, 210, 590, 290);
-  horizonGlow.addColorStop(0, "rgba(200, 54, 25, .26)");
-  horizonGlow.addColorStop(1, "rgba(200, 54, 25, 0)");
-  ctx.fillStyle = horizonGlow;
-  ctx.fillRect(0, 300, 420, 460);
+  const glow = ctx.createRadialGradient(210, 590, 10, 210, 590, 290);
+  glow.addColorStop(0, "rgba(200, 54, 25, .26)");
+  glow.addColorStop(1, "rgba(200, 54, 25, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 300, W, 460);
 
   drawMountainLayer("#1d1422", 575, 92, 180, 0.08);
   drawMountainLayer("#281522", 640, 125, 145, 0.16);
   drawMountainLayer("#351821", 705, 110, 112, 0.26);
 
   ctx.fillStyle = "rgba(255, 116, 45, .18)";
-  ctx.fillRect(0, 716, 420, 44);
+  ctx.fillRect(0, 716, W, 44);
 }
 
 function drawEmbers() {
@@ -354,32 +375,30 @@ function drawEmbers() {
 function drawVolcanicTower(x, width, startY, endY, isTop) {
   const capY = isTop ? endY : startY;
   const bodyStart = isTop ? 0 : startY;
-  const bodyEnd = isTop ? endY : 760;
+  const bodyEnd = isTop ? endY : H;
 
   ctx.fillStyle = "#281820";
   ctx.fillRect(x, bodyStart, width, bodyEnd - bodyStart);
 
   ctx.fillStyle = "#3b2023";
+  ctx.beginPath();
 
   if (isTop) {
-    ctx.beginPath();
     ctx.moveTo(x, capY);
     ctx.lineTo(x + width * 0.25, capY - 14);
     ctx.lineTo(x + width * 0.55, capY - 6);
     ctx.lineTo(x + width * 0.8, capY - 16);
     ctx.lineTo(x + width, capY);
-    ctx.closePath();
-    ctx.fill();
   } else {
-    ctx.beginPath();
     ctx.moveTo(x, capY);
     ctx.lineTo(x + width * 0.22, capY + 16);
     ctx.lineTo(x + width * 0.58, capY + 7);
     ctx.lineTo(x + width * 0.82, capY + 16);
     ctx.lineTo(x + width, capY);
-    ctx.closePath();
-    ctx.fill();
   }
+
+  ctx.closePath();
+  ctx.fill();
 
   ctx.strokeStyle = "#d75a2e";
   ctx.lineWidth = 3;
@@ -387,24 +406,23 @@ function drawVolcanicTower(x, width, startY, endY, isTop) {
 
   ctx.strokeStyle = "#ff9c45";
   ctx.lineWidth = 2;
+  ctx.beginPath();
 
   if (isTop) {
-    ctx.beginPath();
     ctx.moveTo(x, capY);
     ctx.lineTo(x + width * 0.25, capY - 14);
     ctx.lineTo(x + width * 0.55, capY - 6);
     ctx.lineTo(x + width * 0.8, capY - 16);
     ctx.lineTo(x + width, capY);
-    ctx.stroke();
   } else {
-    ctx.beginPath();
     ctx.moveTo(x, capY);
     ctx.lineTo(x + width * 0.22, capY + 16);
     ctx.lineTo(x + width * 0.58, capY + 7);
     ctx.lineTo(x + width * 0.82, capY + 16);
     ctx.lineTo(x + width, capY);
-    ctx.stroke();
   }
+
+  ctx.stroke();
 
   ctx.strokeStyle = "rgba(255, 119, 48, .65)";
   ctx.lineWidth = 2;
@@ -418,7 +436,6 @@ function drawVolcanicTower(x, width, startY, endY, isTop) {
 
 function drawPhoenix() {
   const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
-
   const flap = (Math.sin(seconds * 18) + 1) / 2;
   const widthScale = 1.02 - flap * 0.06;
   const heightScale = 0.94 + flap * 0.12;
@@ -464,7 +481,7 @@ function drawGame() {
       obstacle.x,
       obstacle.width,
       obstacle.bottom,
-      760,
+      H,
       false
     );
   }
@@ -481,7 +498,7 @@ function drawGame() {
   ctx.textAlign = "right";
   ctx.fillStyle = "#ffc65a";
   ctx.font = "bold 15px Arial";
-  ctx.fillText("ASHLANDS", 402, 32);
+  ctx.fillText("ASHLANDS · LEVEL " + (level + 1), 402, 32);
   ctx.textAlign = "left";
 }
 </script>
