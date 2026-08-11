@@ -67,8 +67,6 @@ const W=420,H=760;
 const CHECKPOINT_DISTANCE=1000;
 const CHECKPOINT_CALM_DISTANCE=220;
 const REVIVE_COST=15;
-
-/* Smaller Verdant ability radius */
 const MAGNET_RANGE=80;
 const MAGNET_PULL=3.2;
 
@@ -83,7 +81,7 @@ filter:""
 },
 azure:{
 name:"Azure Phoenix",
-sub:"Stormborn feathers and cyan flame",
+sub:"Stormborn feathers and a checkpoint Storm Shield",
 color:"#67e7ff",
 shadow:"#36dfff",
 cost:25,
@@ -106,6 +104,9 @@ let distance=0,seconds=0,level=0,runShards=0,lastTime=0;
 let checkpoint=0,checkpointFlash=0;
 let revivedThisRun=false,reviveSafety=0;
 let rebirthTimer=0,rebirthParticles=[];
+
+let stormShield=false;
+let shieldFlash=0;
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
@@ -332,6 +333,9 @@ revivedThisRun=false;
 reviveSafety=0;
 rebirthTimer=0;
 rebirthParticles=[];
+stormShield=false;
+shieldFlash=0;
+
 lastTime=performance.now();
 
 addRock(720);
@@ -452,6 +456,8 @@ gate=null;
 reviveSafety=1.8;
 rebirthTimer=2.5;
 rebirthParticles=[];
+stormShield=false;
+shieldFlash=0;
 
 for(let i=0;i<30;i++){
 const angle=Math.random()*Math.PI*2;
@@ -492,6 +498,7 @@ level=Math.min(3,Math.floor(distance/500));
 checkpointFlash=Math.max(0,checkpointFlash-dt);
 reviveSafety=Math.max(0,reviveSafety-dt);
 rebirthTimer=Math.max(0,rebirthTimer-dt);
+shieldFlash=Math.max(0,shieldFlash-dt);
 
 rebirthParticles=rebirthParticles.filter(particle=>{
 particle.life-=dt;
@@ -594,6 +601,14 @@ bird.y-bird.radius<rock.top||
 bird.y+bird.radius>rock.bottom;
 
 if(hitSide&&hitRock){
+if(equippedPhoenix==="azure"&&stormShield){
+stormShield=false;
+shieldFlash=.75;
+rock.x=-220;
+rock.shardX=-220;
+continue;
+}
+
 triggerGameOver();
 return;
 }
@@ -619,6 +634,11 @@ if(gate.x<bird.x){
 checkpoint=gate.value;
 runShards++;
 checkpointFlash=2.6;
+
+if(equippedPhoenix==="azure"){
+stormShield=true;
+shieldFlash=1.1;
+}
 
 if(checkpoint>highestCheckpoint){
 highestCheckpoint=checkpoint;
@@ -844,6 +864,26 @@ x.stroke();
 x.restore();
 }
 
+if(equippedPhoenix==="azure"&&(stormShield||shieldFlash>0)){
+const shieldPulse=1+Math.sin(seconds*10)*.06;
+
+x.save();
+x.translate(bird.x,bird.y);
+x.scale(shieldPulse,shieldPulse);
+
+x.globalAlpha=stormShield?.42:shieldFlash/.75;
+x.strokeStyle="#67e7ff";
+x.lineWidth=3;
+x.shadowBlur=24;
+x.shadowColor="#36dfff";
+
+x.beginPath();
+x.arc(0,0,42,0,Math.PI*2);
+x.stroke();
+
+x.restore();
+}
+
 if(rebirthTimer>0||reviveSafety>0){
 const glowStrength=
 rebirthTimer>0
@@ -903,6 +943,16 @@ x.font="bold 13px Arial";
 x.fillText("EMBER MAGNET",16,80);
 }
 
+if(equippedPhoenix==="azure"){
+x.fillStyle=stormShield?"#67e7ff":"#8a9ba8";
+x.font="bold 13px Arial";
+x.fillText(
+stormShield?"STORM SHIELD READY":"STORM SHIELD USED",
+16,
+80
+);
+}
+
 x.textAlign="right";
 x.fillStyle=phoenix.color;
 x.font="bold 15px Arial";
@@ -922,6 +972,11 @@ W/2,
 
 x.font="bold 17px Arial";
 x.fillText("+1 EMBER SHARD",W/2,146);
+
+if(equippedPhoenix==="azure"){
+x.fillStyle="#67e7ff";
+x.fillText("STORM SHIELD CHARGED",W/2,171);
+}
 
 x.textAlign="left";
 }
