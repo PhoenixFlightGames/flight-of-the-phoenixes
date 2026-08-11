@@ -67,8 +67,10 @@ const W=420,H=760;
 const CHECKPOINT_DISTANCE=1000;
 const CHECKPOINT_CALM_DISTANCE=220;
 const REVIVE_COST=15;
-const MAGNET_RANGE=145;
-const MAGNET_PULL=4.4;
+
+/* Smaller Verdant ability radius */
+const MAGNET_RANGE=80;
+const MAGNET_PULL=3.2;
 
 const P={
 ember:{
@@ -97,23 +99,13 @@ filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
 }
 };
 
-let playing=false;
-let holding=false;
+let playing=false,holding=false;
 let bird,rocks,embers,trails,gate;
 
-let distance=0;
-let seconds=0;
-let level=0;
-let runShards=0;
-let lastTime=0;
-
-let checkpoint=0;
-let checkpointFlash=0;
-let revivedThisRun=false;
-let reviveSafety=0;
-
-let rebirthTimer=0;
-let rebirthParticles=[];
+let distance=0,seconds=0,level=0,runShards=0,lastTime=0;
+let checkpoint=0,checkpointFlash=0;
+let revivedThisRun=false,reviveSafety=0;
+let rebirthTimer=0,rebirthParticles=[];
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
@@ -334,15 +326,12 @@ distance=0;
 seconds=0;
 level=0;
 runShards=0;
-
 checkpoint=0;
 checkpointFlash=0;
 revivedThisRun=false;
 reviveSafety=0;
-
 rebirthTimer=0;
 rebirthParticles=[];
-
 lastTime=performance.now();
 
 addRock(720);
