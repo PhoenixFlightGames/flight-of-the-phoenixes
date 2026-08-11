@@ -6,7 +6,9 @@
 <title>Flight of the Phoenixes</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body {
   margin: 0;
@@ -81,6 +83,7 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
 const bestText = document.getElementById("bestText");
+
 const phoenixImage = new Image();
 let phoenixSprite = null;
 
@@ -121,7 +124,6 @@ phoenixImage.onload = function() {
 
 phoenixImage.src = "IMG_3821.jpeg";
 
-
 let playing = false;
 let holding = false;
 let bird;
@@ -155,7 +157,10 @@ function startGame() {
 
 canvas.addEventListener("touchstart", function(event) {
   event.preventDefault();
-  if (playing) holding = true;
+
+  if (playing) {
+    holding = true;
+  }
 }, { passive: false });
 
 canvas.addEventListener("touchend", function(event) {
@@ -168,7 +173,9 @@ canvas.addEventListener("touchcancel", function() {
 });
 
 canvas.addEventListener("mousedown", function() {
-  if (playing) holding = true;
+  if (playing) {
+    holding = true;
+  }
 });
 
 window.addEventListener("mouseup", function() {
@@ -232,6 +239,7 @@ function gameLoop(now) {
 
     if (hitSide && hitObstacle) {
       gameOver();
+      return;
     }
   }
 
@@ -239,10 +247,42 @@ function gameLoop(now) {
 
   if (bird.y - bird.radius < 0 || bird.y + bird.radius > 760) {
     gameOver();
+    return;
   }
 
   drawGame();
   requestAnimationFrame(gameLoop);
+}
+
+function drawPhoenix() {
+  const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
+
+  const flap = (Math.sin(seconds * 18) + 1) / 2;
+  const widthScale = 1.02 - flap * 0.06;
+  const heightScale = 0.94 + flap * 0.12;
+  const flightLift = flap * 3;
+
+  ctx.save();
+  ctx.translate(bird.x, bird.y - flightLift);
+  ctx.rotate(tilt);
+  ctx.scale(widthScale, heightScale);
+
+  ctx.shadowBlur = 18 + flap * 8;
+  ctx.shadowColor = "#ff542f";
+
+  if (phoenixSprite) {
+    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
+  } else {
+    ctx.fillStyle = "#ff842f";
+    ctx.beginPath();
+    ctx.moveTo(-25, 0);
+    ctx.quadraticCurveTo(-4, -27, 24, -8);
+    ctx.quadraticCurveTo(32, 0, 24, 8);
+    ctx.quadraticCurveTo(-4, 27, -25, 0);
+    ctx.fill();
+  }
+
+  ctx.restore();
 }
 
 function drawGame() {
@@ -255,6 +295,7 @@ function drawGame() {
   for (const obstacle of obstacles) {
     ctx.fillStyle = "#2c1820";
     ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
+
     ctx.fillRect(
       obstacle.x,
       obstacle.bottom,
@@ -264,7 +305,9 @@ function drawGame() {
 
     ctx.strokeStyle = "#ff8c36";
     ctx.lineWidth = 3;
+
     ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
+
     ctx.strokeRect(
       obstacle.x,
       obstacle.bottom,
@@ -273,31 +316,7 @@ function drawGame() {
     );
   }
 
-   ctx.save();
-  ctx.translate(bird.x, bird.y);
-
-  const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
-  ctx.rotate(tilt);
-
-  ctx.shadowBlur = 18;
-  ctx.shadowColor = "#ff542f";
-
-  if (phoenixSprite) {
-
-    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
-
-  } else {
-    ctx.fillStyle = "#ff842f";
-    ctx.beginPath();
-    ctx.moveTo(-25, 0);
-    ctx.quadraticCurveTo(-4, -27, 24, -8);
-    ctx.quadraticCurveTo(32, 0, 24, 8);
-    ctx.quadraticCurveTo(-4, 27, -25, 0);
-    ctx.fill();
-  }
-
-  ctx.restore();
-
+  drawPhoenix();
 
   ctx.fillStyle = "white";
   ctx.font = "bold 20px Arial";
