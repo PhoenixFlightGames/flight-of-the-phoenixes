@@ -23,11 +23,37 @@ button:active{transform:scale(.98)}
 .revive-title{color:#67e7ff;text-shadow:0 0 20px #36dfff}
 .revive-button{border-color:#67e7ff;background:#164c68}
 .end-button{border-color:#a87d92;background:#392333}
+.ability-button{
+position:fixed;
+right:18px;
+bottom:28px;
+z-index:8;
+width:112px;
+height:112px;
+margin:0;
+padding:10px;
+border:3px solid #c879ff;
+border-radius:50%;
+background:radial-gradient(circle,#5a267c,#231329);
+color:#fff;
+font-size:14px;
+line-height:1.15;
+box-shadow:0 0 24px #9e4bff;
+}
+.ability-button.solar{
+border-color:#ffd15c;
+background:radial-gradient(circle,#a95718,#4d2415);
+box-shadow:0 0 24px #ffb62f;
+}
 </style>
 </head>
 <body>
 
 <canvas id="game" width="420" height="760"></canvas>
+
+<button id="abilityButton" class="ability-button hidden" onclick="useAbility()">
+ABILITY
+</button>
 
 <div id="menu" class="screen">
 <h1>FLIGHT OF THE<br>PHOENIXES</h1>
@@ -62,6 +88,7 @@ const reviveText=document.getElementById("reviveText");
 const bestText=document.getElementById("bestText");
 const roostShards=document.getElementById("roostShards");
 const phoenixList=document.getElementById("phoenixList");
+const abilityButton=document.getElementById("abilityButton");
 
 const W=420,H=760;
 const CHECKPOINT_DISTANCE=1000;
@@ -71,10 +98,46 @@ const MAGNET_RANGE=80;
 const MAGNET_PULL=3.2;
 
 const P={
-ember:{name:"Ember Phoenix",sub:"Starter Phoenix — orange flame",color:"#ff8a35",shadow:"#ff542f",cost:0,filter:""},
-azure:{name:"Azure Phoenix",sub:"Stormborn feathers and a checkpoint Storm Shield",color:"#67e7ff",shadow:"#36dfff",cost:25,filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"},
-verdant:{name:"Verdant Phoenix",sub:"Wildfire plumage and Ember Magnet",color:"#62f58c",shadow:"#56f58a",cost:50,filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"},
-violet:{name:"Violet Phoenix",sub:"Arcane flame and checkpoint Arcane Pulse",color:"#c879ff",shadow:"#9e4bff",cost:100,filter:"hue-rotate(230deg) saturate(2.1) brightness(1.2)"}
+ember:{
+name:"Ember Phoenix",
+sub:"Starter Phoenix — orange flame",
+color:"#ff8a35",
+shadow:"#ff542f",
+cost:0,
+filter:""
+},
+azure:{
+name:"Azure Phoenix",
+sub:"Stormborn feathers and a checkpoint Storm Shield",
+color:"#67e7ff",
+shadow:"#36dfff",
+cost:25,
+filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"
+},
+verdant:{
+name:"Verdant Phoenix",
+sub:"Wildfire plumage and Ember Magnet",
+color:"#62f58c",
+shadow:"#56f58a",
+cost:50,
+filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
+},
+violet:{
+name:"Violet Phoenix",
+sub:"Arcane flame and player-triggered Arcane Pulse",
+color:"#c879ff",
+shadow:"#9e4bff",
+cost:100,
+filter:"hue-rotate(230deg) saturate(2.1) brightness(1.2)"
+},
+solar:{
+name:"Solar Phoenix",
+sub:"Sunfire wings and player-triggered Sunfire Grace",
+color:"#ffd15c",
+shadow:"#ff9b2f",
+cost:175,
+filter:"hue-rotate(25deg) saturate(2.1) brightness(1.35)"
+}
 };
 
 let playing=false,holding=false;
@@ -84,9 +147,18 @@ let distance=0,seconds=0,level=0,runShards=0,lastTime=0;
 let checkpoint=0,checkpointFlash=0;
 let revivedThisRun=false,reviveSafety=0;
 let rebirthTimer=0,rebirthParticles=[];
+
 let stormShield=false,shieldFlash=0;
-let arcanePulse=false,pulseFlash=0;
-let zoneFlash=0,activeZone="EMBER CAVERNS";
+
+let arcanePulse=false;
+let pulseFlash=0;
+
+let sunfireGrace=false;
+let sunfireActive=false;
+let sunfireFlash=0;
+
+let zoneFlash=0;
+let activeZone="EMBER CAVERNS";
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
@@ -95,12 +167,14 @@ let highestCheckpoint=Number(localStorage.getItem("phoenixHighestCheckpoint"))||
 let azureUnlocked=localStorage.getItem("azureUnlocked")==="true";
 let verdantUnlocked=localStorage.getItem("verdantUnlocked")==="true";
 let violetUnlocked=localStorage.getItem("violetUnlocked")==="true";
+let solarUnlocked=localStorage.getItem("solarUnlocked")==="true";
 
 let equippedPhoenix=localStorage.getItem("equippedPhoenix")||"ember";
 
 if(equippedPhoenix==="azure"&&!azureUnlocked)equippedPhoenix="ember";
 if(equippedPhoenix==="verdant"&&!verdantUnlocked)equippedPhoenix="ember";
 if(equippedPhoenix==="violet"&&!violetUnlocked)equippedPhoenix="ember";
+if(equippedPhoenix==="solar"&&!solarUnlocked)equippedPhoenix="ember";
 
 function currentZone(){
 if(distance>=4000){
@@ -158,6 +232,47 @@ highestCheckpoint
 `;
 }
 
+function updateAbilityButton(){
+abilityButton.classList.add("hidden");
+abilityButton.classList.remove("solar");
+
+if(!playing)return;
+
+if(equippedPhoenix==="violet"&&arcanePulse){
+abilityButton.textContent="ARCANE\nPULSE";
+abilityButton.classList.remove("hidden");
+}
+
+if(equippedPhoenix==="solar"&&sunfireGrace){
+abilityButton.textContent="SUNFIRE\nGRACE";
+abilityButton.classList.add("solar");
+abilityButton.classList.remove("hidden");
+}
+}
+
+function useAbility(){
+if(!playing)return;
+
+if(equippedPhoenix==="violet"&&arcanePulse){
+const target=rocks.find(rock=>rock.x+rock.width>bird.x+15);
+
+if(target){
+arcanePulse=false;
+pulseFlash=.95;
+target.x=-220;
+target.shardX=-220;
+updateAbilityButton();
+}
+}
+
+if(equippedPhoenix==="solar"&&sunfireGrace){
+sunfireGrace=false;
+sunfireActive=true;
+sunfireFlash=.9;
+updateAbilityButton();
+}
+}
+
 updateMenuText();
 
 const img=new Image();
@@ -200,6 +315,7 @@ localStorage.setItem("phoenixHighestCheckpoint",highestCheckpoint);
 localStorage.setItem("azureUnlocked",azureUnlocked);
 localStorage.setItem("verdantUnlocked",verdantUnlocked);
 localStorage.setItem("violetUnlocked",violetUnlocked);
+localStorage.setItem("solarUnlocked",solarUnlocked);
 localStorage.setItem("equippedPhoenix",equippedPhoenix);
 }
 
@@ -207,7 +323,8 @@ function unlocked(key){
 return key==="ember"||
 (key==="azure"&&azureUnlocked)||
 (key==="verdant"&&verdantUnlocked)||
-(key==="violet"&&violetUnlocked);
+(key==="violet"&&violetUnlocked)||
+(key==="solar"&&solarUnlocked);
 }
 
 function dot(color){
@@ -265,11 +382,7 @@ ${phoenixCard("ember")}
 ${phoenixCard("azure")}
 ${phoenixCard("verdant")}
 ${phoenixCard("violet")}
-
-<div class="card">
-<strong>Solar Phoenix</strong><br>
-Sunfire wings — 175 shards
-</div>
+${phoenixCard("solar")}
 `;
 }
 
@@ -286,6 +399,7 @@ totalShards-=phoenix.cost;
 if(key==="azure")azureUnlocked=true;
 if(key==="verdant")verdantUnlocked=true;
 if(key==="violet")violetUnlocked=true;
+if(key==="solar")solarUnlocked=true;
 
 equippedPhoenix=key;
 save();
@@ -326,14 +440,23 @@ level=0;
 runShards=0;
 checkpoint=0;
 checkpointFlash=0;
+
 revivedThisRun=false;
 reviveSafety=0;
+
 rebirthTimer=0;
 rebirthParticles=[];
+
 stormShield=false;
 shieldFlash=0;
+
 arcanePulse=false;
 pulseFlash=0;
+
+sunfireGrace=false;
+sunfireActive=false;
+sunfireFlash=0;
+
 zoneFlash=0;
 activeZone="EMBER CAVERNS";
 
@@ -342,6 +465,7 @@ lastTime=performance.now();
 addRock(720);
 
 menu.classList.add("hidden");
+updateAbilityButton();
 requestAnimationFrame(loop);
 }
 
@@ -407,6 +531,7 @@ function triggerGameOver(){
 if(!playing)return;
 
 playing=false;
+updateAbilityButton();
 
 const canRevive=
 checkpoint>0&&
@@ -429,6 +554,7 @@ endFlight();
 
 function endFlight(){
 reviveScreen.classList.add("hidden");
+updateAbilityButton();
 
 best=Math.max(best,Math.floor(distance));
 totalShards+=runShards;
@@ -467,10 +593,16 @@ gate=null;
 reviveSafety=1.8;
 rebirthTimer=2.5;
 rebirthParticles=[];
+
 stormShield=false;
 shieldFlash=0;
+
 arcanePulse=false;
 pulseFlash=0;
+
+sunfireGrace=false;
+sunfireActive=false;
+sunfireFlash=0;
 
 for(let i=0;i<30;i++){
 const angle=Math.random()*Math.PI*2;
@@ -494,6 +626,8 @@ lastTime=performance.now();
 
 save();
 reviveScreen.classList.add("hidden");
+updateAbilityButton();
+
 requestAnimationFrame(loop);
 }
 
@@ -519,6 +653,7 @@ reviveSafety=Math.max(0,reviveSafety-dt);
 rebirthTimer=Math.max(0,rebirthTimer-dt);
 shieldFlash=Math.max(0,shieldFlash-dt);
 pulseFlash=Math.max(0,pulseFlash-dt);
+sunfireFlash=Math.max(0,sunfireFlash-dt);
 zoneFlash=Math.max(0,zoneFlash-dt);
 
 rebirthParticles=rebirthParticles.filter(particle=>{
@@ -588,18 +723,6 @@ const speed=Math.min(265,155+level*11);
 for(const rock of rocks){
 rock.x-=speed*dt;
 
-if(
-equippedPhoenix==="violet"&&
-arcanePulse&&
-rock.x<340
-){
-arcanePulse=false;
-pulseFlash=.9;
-rock.x=-220;
-rock.shardX=-220;
-continue;
-}
-
 if(rock.shard&&!rock.shardCollected){
 rock.shardX-=speed*dt;
 
@@ -642,6 +765,15 @@ rock.shardX=-220;
 continue;
 }
 
+if(equippedPhoenix==="solar"&&sunfireActive){
+sunfireActive=false;
+sunfireFlash=.95;
+rock.x=-220;
+rock.shardX=-220;
+runShards+=2;
+continue;
+}
+
 triggerGameOver();
 return;
 }
@@ -678,6 +810,11 @@ arcanePulse=true;
 pulseFlash=.8;
 }
 
+if(equippedPhoenix==="solar"){
+sunfireGrace=true;
+sunfireFlash=.8;
+}
+
 if(checkpoint>highestCheckpoint){
 highestCheckpoint=checkpoint;
 save();
@@ -685,6 +822,7 @@ save();
 
 gate=null;
 addRock(760);
+updateAbilityButton();
 }
 }
 
@@ -923,10 +1061,10 @@ x.restore();
 }
 
 if(equippedPhoenix==="violet"&&(arcanePulse||pulseFlash>0)){
-const pulseSize=arcanePulse?42:42+(1-pulseFlash/.9)*150;
+const pulseSize=arcanePulse?42:42+(1-pulseFlash/.95)*165;
 
 x.save();
-x.globalAlpha=arcanePulse?.34:Math.max(0,pulseFlash/.9);
+x.globalAlpha=arcanePulse?.34:Math.max(0,pulseFlash/.95);
 x.translate(bird.x,bird.y);
 x.strokeStyle="#c879ff";
 x.lineWidth=3;
@@ -935,6 +1073,25 @@ x.shadowColor="#9e4bff";
 
 x.beginPath();
 x.arc(0,0,pulseSize,0,Math.PI*2);
+x.stroke();
+
+x.restore();
+}
+
+if(equippedPhoenix==="solar"&&(sunfireActive||sunfireGrace||sunfireFlash>0)){
+const sunSize=sunfireActive?45:45+(1-sunfireFlash/.95)*150;
+
+x.save();
+x.translate(bird.x,bird.y);
+
+x.globalAlpha=sunfireActive?.48:(sunfireGrace?.25:Math.max(0,sunfireFlash/.95));
+x.strokeStyle="#ffd15c";
+x.lineWidth=4;
+x.shadowBlur=30;
+x.shadowColor="#ff9b2f";
+
+x.beginPath();
+x.arc(0,0,sunSize,0,Math.PI*2);
 x.stroke();
 
 x.restore();
@@ -1019,6 +1176,16 @@ arcanePulse?"ARCANE PULSE READY":"ARCANE PULSE USED",
 );
 }
 
+if(equippedPhoenix==="solar"){
+x.fillStyle=sunfireGrace?"#ffd15c":sunfireActive?"#fff2b0":"#a58c68";
+x.font="bold 13px Arial";
+x.fillText(
+sunfireGrace?"SUNFIRE GRACE READY":sunfireActive?"SUNFIRE GRACE ACTIVE":"SUNFIRE GRACE USED",
+16,
+80
+);
+}
+
 x.textAlign="right";
 x.fillStyle=phoenix.color;
 x.font="bold 15px Arial";
@@ -1049,6 +1216,11 @@ x.fillStyle="#c879ff";
 x.fillText("ARCANE PULSE CHARGED",W/2,171);
 }
 
+if(equippedPhoenix==="solar"){
+x.fillStyle="#ffd15c";
+x.fillText("SUNFIRE GRACE CHARGED",W/2,171);
+}
+
 x.textAlign="left";
 }
 
@@ -1063,11 +1235,7 @@ x.shadowColor=z.edge;
 x.fillStyle=z.edge;
 x.font="bold 28px Arial";
 
-x.fillText(
-activeZone,
-W/2,
-215
-);
+x.fillText(activeZone,W/2,215);
 
 x.font="bold 16px Arial";
 x.fillStyle="#ffffff";
@@ -1093,20 +1261,12 @@ x.shadowColor="#67e7ff";
 x.fillStyle="#67e7ff";
 x.font="bold 27px Arial";
 
-x.fillText(
-"PHOENIX REBORN",
-W/2,
-190
-);
+x.fillText("PHOENIX REBORN",W/2,190);
 
 x.font="bold 16px Arial";
 x.fillStyle="#ffd15c";
 
-x.fillText(
-"A second flame takes flight",
-W/2,
-217
-);
+x.fillText("A second flame takes flight",W/2,217);
 
 x.restore();
 x.textAlign="left";
