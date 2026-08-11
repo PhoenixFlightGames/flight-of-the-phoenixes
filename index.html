@@ -808,8 +808,20 @@ color:P[equippedPhoenix].color
 
 trails=trails.filter(trail=>{
 trail.life-=dt;
-return trail.life>0;
+
+trail.x-=(
+230+
+Math.random()*120
+)*dt;
+
+trail.y+=Math.sin(
+seconds*8+
+trail.x*.03
+)*12*dt;
+
+return trail.life>0&&trail.x>-70;
 });
+
 
 const nextCheckpoint=checkpoint+CHECKPOINT_DISTANCE;
 const calm=distance>=nextCheckpoint-220;
