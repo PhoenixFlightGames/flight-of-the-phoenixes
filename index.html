@@ -6,9 +6,12 @@
 <title>Flight of the Phoenixes</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   margin: 0;
   width: 100%;
   height: 100%;
@@ -27,14 +30,15 @@ canvas {
 .screen {
   position: fixed;
   inset: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  text-align: center;
+  justify-content: center;
   padding: 28px;
   color: white;
-  background: rgba(8, 9, 20, .94);
+  text-align: center;
+  background: rgba(8, 9, 20, 0.94);
 }
 
 .hidden {
@@ -51,9 +55,9 @@ h1 {
 
 p {
   max-width: 360px;
+  color: #e1dbe5;
   font-size: 18px;
   line-height: 1.45;
-  color: #e1dbe5;
 }
 
 button {
@@ -66,15 +70,22 @@ button {
   color: white;
   font-size: 20px;
   font-weight: bold;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 .roost {
   width: min(390px, 92vw);
-  max-height: 65vh;
-  overflow: auto;
+  max-height: 64vh;
+  overflow-y: auto;
+  padding: 2px 3px 10px;
 }
 
 .shards {
+  margin-top: -4px;
   color: #ffd15c;
   font-size: 22px;
   font-weight: bold;
@@ -82,29 +93,19 @@ button {
 
 .card {
   margin: 9px 0;
-  padding: 13px 15px;
+  padding: 14px 15px;
   border: 1px solid #744357;
   border-radius: 12px;
   background: #221522;
   text-align: left;
 }
 
-.card strong {
-  color: #ffc65a;
-}
-
-.card.azure strong {
-  color: #67e7ff;
-}
-
 .card.equipped {
-  border-color: #ffc65a;
   background: #402033;
 }
 
-.card.azure.equipped {
-  border-color: #67e7ff;
-  background: #17394d;
+.card strong {
+  font-size: 18px;
 }
 
 .card button {
@@ -114,9 +115,38 @@ button {
   font-size: 16px;
 }
 
-.azure button {
-  border-color: #67e7ff;
-  background: #164c68;
+.preview {
+  display: inline-block;
+  width: 17px;
+  height: 17px;
+  margin-right: 7px;
+  border-radius: 50%;
+  vertical-align: -3px;
+}
+
+@keyframes unlockPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -45%) scale(0.75);
+  }
+
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -55%) scale(0.96);
+  }
 }
 </style>
 </head>
@@ -126,22 +156,31 @@ button {
 
 <div id="menu" class="screen">
   <h1>FLIGHT OF THE<br>PHOENIXES</h1>
-  <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and collect Ember Shards.</p>
+
+  <p>
+    Hold the screen to rise. Release to glide.<br>
+    Avoid the obstacles and collect Ember Shards.
+  </p>
+
   <button onclick="startGame()">Endless Flight</button>
   <button onclick="openRoost()">Phoenix Roost</button>
+
   <p id="bestText">Best: 0 m</p>
 </div>
 
 <div id="roost" class="screen hidden">
   <h1>PHOENIX ROOST</h1>
   <p class="shards" id="roostShards"></p>
+
   <div class="roost" id="phoenixList"></div>
+
   <button onclick="closeRoost()">Back to Flight</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
+
 const menu = document.getElementById("menu");
 const roost = document.getElementById("roost");
 const bestText = document.getElementById("bestText");
@@ -150,26 +189,78 @@ const phoenixList = document.getElementById("phoenixList");
 
 const W = 420;
 const H = 760;
-const AZURE_COST = 25;
+
+const PHOENIXES = {
+  ember: {
+    name: "Ember Phoenix",
+    subtitle: "Starter Phoenix — orange flame",
+    color: "#ff8a35",
+    shadow: "#ff542f",
+    cost: 0,
+    filter: ""
+  },
+
+  azure: {
+    name: "Azure Phoenix",
+    subtitle: "Stormborn feathers and cyan flame",
+    color: "#67e7ff",
+    shadow: "#36dfff",
+    cost: 25,
+    filter: "hue-rotate(145deg) saturate(1.8) brightness(1.2)"
+  },
+
+  verdant: {
+    name: "Verdant Phoenix",
+    subtitle: "Wildfire plumage and emerald flame",
+    color: "#62f58c",
+    shadow: "#56f58a",
+    cost: 50,
+    filter: "hue-rotate(78deg) saturate(1.9) brightness(1.18)"
+  }
+};
 
 const phoenixImage = new Image();
 let phoenixSprite = null;
 
 let playing = false;
 let holding = false;
+
 let bird;
 let obstacles;
 let embers;
+let trails;
+
 let distance;
 let seconds;
-let lastTime;
 let level;
 let runShards;
+let lastTime;
 
 let best = Number(localStorage.getItem("phoenixBest")) || 0;
 let totalShards = Number(localStorage.getItem("phoenixShards")) || 0;
-let azureUnlocked = localStorage.getItem("azureUnlocked") === "true";
-let equippedPhoenix = localStorage.getItem("equippedPhoenix") || "ember";
+
+let azureUnlocked =
+  localStorage.getItem("azureUnlocked") === "true";
+
+let verdantUnlocked =
+  localStorage.getItem("verdantUnlocked") === "true";
+
+let equippedPhoenix =
+  localStorage.getItem("equippedPhoenix") || "ember";
+
+if (
+  equippedPhoenix === "azure" &&
+  !azureUnlocked
+) {
+  equippedPhoenix = "ember";
+}
+
+if (
+  equippedPhoenix === "verdant" &&
+  !verdantUnlocked
+) {
+  equippedPhoenix = "ember";
+}
 
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
 
@@ -213,7 +304,29 @@ phoenixImage.src = "IMG_3821.jpeg";
 function savePhoenixProgress() {
   localStorage.setItem("phoenixShards", totalShards);
   localStorage.setItem("azureUnlocked", azureUnlocked);
+  localStorage.setItem("verdantUnlocked", verdantUnlocked);
   localStorage.setItem("equippedPhoenix", equippedPhoenix);
+}
+
+function isUnlocked(key) {
+  if (key === "ember") return true;
+  if (key === "azure") return azureUnlocked;
+  if (key === "verdant") return verdantUnlocked;
+  return false;
+}
+
+function setUnlocked(key) {
+  if (key === "azure") azureUnlocked = true;
+  if (key === "verdant") verdantUnlocked = true;
+}
+
+function preview(color) {
+  return `
+    <span
+      class="preview"
+      style="background:${color};box-shadow:0 0 12px ${color};"
+    ></span>
+  `;
 }
 
 function openRoost() {
@@ -227,89 +340,156 @@ function closeRoost() {
   menu.classList.remove("hidden");
 }
 
-function renderRoost() {
-  roostShards.textContent = "Ember Shards: " + totalShards;
+function phoenixCard(key) {
+  const phoenix = PHOENIXES[key];
+  const unlocked = isUnlocked(key);
+  const equipped = equippedPhoenix === key;
 
-  const emberEquipped = equippedPhoenix === "ember";
-  const azureEquipped = equippedPhoenix === "azure";
+  if (!unlocked) {
+    return `
+      <div class="card" style="border-color:${phoenix.color};">
+        <strong style="color:${phoenix.color};">
+          ${preview(phoenix.color)}${phoenix.name}
+        </strong><br>
+        ${phoenix.subtitle}
 
-  let azureCard;
-
-  if (!azureUnlocked) {
-    azureCard = `
-      <div class="card azure">
-        <strong>Azure Phoenix</strong><br>
-        Stormborn feathers and cyan flame
-        <button onclick="unlockAzure()">
-          Unlock for ${AZURE_COST} Shards
+        <button
+          onclick="unlockPhoenix('${key}')"
+          style="border-color:${phoenix.color};background:#17394d;"
+        >
+          Unlock for ${phoenix.cost} Shards
         </button>
-      </div>
-    `;
-  } else {
-    azureCard = `
-      <div class="card azure ${azureEquipped ? "equipped" : ""}">
-        <strong>Azure Phoenix</strong><br>
-        Stormborn feathers and cyan flame<br>
-        ${azureEquipped ? "Equipped" : "Unlocked"}
-        ${azureEquipped ? "" : '<button onclick="equipPhoenix(\'azure\')">Equip Azure Phoenix</button>'}
       </div>
     `;
   }
 
+  return `
+    <div
+      class="card ${equipped ? "equipped" : ""}"
+      style="border-color:${equipped ? phoenix.color : "#744357"};"
+    >
+      <strong style="color:${phoenix.color};">
+        ${preview(phoenix.color)}${phoenix.name}
+      </strong><br>
+      ${phoenix.subtitle}<br>
+      ${equipped ? "Equipped" : "Unlocked"}
+
+      ${
+        equipped
+          ? ""
+          : `
+            <button
+              onclick="equipPhoenix('${key}')"
+              style="border-color:${phoenix.color};background:#17394d;"
+            >
+              Equip ${phoenix.name}
+            </button>
+          `
+      }
+    </div>
+  `;
+}
+
+function renderRoost() {
+  roostShards.textContent =
+    "Ember Shards: " + totalShards;
+
   phoenixList.innerHTML = `
-    <div class="card ${emberEquipped ? "equipped" : ""}">
-      <strong>Ember Phoenix</strong><br>
-      Starter Phoenix<br>
-      ${emberEquipped ? "Equipped" : "Unlocked"}
-      ${emberEquipped ? "" : '<button onclick="equipPhoenix(\'ember\')">Equip Ember Phoenix</button>'}
-    </div>
-
-    ${azureCard}
+    ${phoenixCard("ember")}
+    ${phoenixCard("azure")}
+    ${phoenixCard("verdant")}
 
     <div class="card">
-      <strong>Verdant Phoenix</strong><br>
-      Wildfire plumage — 50 shards
-    </div>
-
-    <div class="card">
-      <strong>Violet Phoenix</strong><br>
+      <strong style="color:#cb79ff;">
+        ${preview("#cb79ff")}Violet Phoenix
+      </strong><br>
       Arcane flame — 100 shards
     </div>
 
     <div class="card">
-      <strong>Solar Phoenix</strong><br>
+      <strong style="color:#ffd65c;">
+        ${preview("#ffd65c")}Solar Phoenix
+      </strong><br>
       Sunfire wings — 175 shards
     </div>
 
     <div class="card">
-      <strong>Obsidian Phoenix</strong><br>
+      <strong style="color:#8a8795;">
+        ${preview("#8a8795")}Obsidian Phoenix
+      </strong><br>
       Ancient ash — 300 shards
     </div>
   `;
 }
 
-function unlockAzure() {
-  if (totalShards < AZURE_COST) {
+function unlockPhoenix(key) {
+  const phoenix = PHOENIXES[key];
+
+  if (!phoenix || key === "ember") return;
+
+  if (totalShards < phoenix.cost) {
     alert(
-      "You need " + AZURE_COST +
-      " Ember Shards to unlock Azure Phoenix."
+      "You need " +
+      phoenix.cost +
+      " Ember Shards to unlock " +
+      phoenix.name +
+      "."
     );
     return;
   }
 
-  totalShards -= AZURE_COST;
-  azureUnlocked = true;
-  equippedPhoenix = "azure";
+  totalShards -= phoenix.cost;
+  setUnlocked(key);
+  equippedPhoenix = key;
+
+  savePhoenixProgress();
+  renderRoost();
+  showUnlockCelebration(phoenix.name, phoenix.color);
+}
+
+function equipPhoenix(key) {
+  if (!isUnlocked(key)) return;
+
+  equippedPhoenix = key;
   savePhoenixProgress();
   renderRoost();
 }
 
-function equipPhoenix(name) {
-  if (name === "azure" && !azureUnlocked) return;
+function showUnlockCelebration(name, color) {
+  const message = document.createElement("div");
 
-  equippedPhoenix = name;
-  savePhoenixProgress();
-  renderRoost();
+  message.innerHTML = `
+    <div style="font-size:40px;margin-bottom:10px;">✦</div>
+    <div>${name} Unlocked!</div>
+    <div style="font-size:16px;margin-top:8px;color:#f4f1fa;">
+      Now equipped for your next flight.
+    </div>
+  `;
+
+  message.style.cssText = `
+    position:fixed;
+    z-index:30;
+    left:50%;
+    top:50%;
+    width:min(330px,82vw);
+    transform:translate(-50%,-50%);
+    padding:25px 18px;
+    border:2px solid ${color};
+    border-radius:18px;
+    background:rgba(12,15,30,.96);
+    color:${color};
+    box-shadow:0 0 35px ${color};
+    text-align:center;
+    font-size:25px;
+    font-weight:bold;
+    animation:unlockPop 2.2s ease forwards;
+  `;
+
+  document.body.appendChild(message);
+
+  setTimeout(function() {
+    message.remove();
+  }, 2300);
 }
 
 function makeEmbers() {
@@ -342,6 +522,8 @@ function startGame() {
 
   obstacles = [];
   embers = makeEmbers();
+  trails = [];
+
   distance = 0;
   seconds = 0;
   level = 0;
@@ -349,6 +531,7 @@ function startGame() {
   lastTime = performance.now();
 
   menu.classList.add("hidden");
+
   requestAnimationFrame(gameLoop);
 }
 
@@ -383,6 +566,7 @@ function addObstacle() {
   const gap = 220 - level * 8;
   const minimumMiddle = gap / 2 + 42;
   const maximumMiddle = H - gap / 2 - 42;
+
   const middle =
     minimumMiddle +
     Math.random() * (maximumMiddle - minimumMiddle);
@@ -410,21 +594,44 @@ function updateEmbers(dt) {
   }
 }
 
+function updateTrails(dt) {
+  const color = PHOENIXES[equippedPhoenix].color;
+
+  trails.push({
+    x: bird.x - 30,
+    y: bird.y + 4,
+    size: 9 + Math.random() * 8,
+    life: 0.5,
+    maxLife: 0.5,
+    color: color
+  });
+
+  trails = trails.filter(function(trail) {
+    trail.life -= dt;
+    trail.x -= 35 * dt;
+    trail.y += Math.sin(seconds * 12 + trail.size) * 10 * dt;
+
+    return trail.life > 0;
+  });
+}
+
 function gameOver() {
   if (!playing) return;
 
   playing = false;
+
   best = Math.max(best, Math.floor(distance));
   totalShards += runShards;
 
   localStorage.setItem("phoenixBest", best);
   savePhoenixProgress();
 
-  bestText.innerHTML =
-    "Flight ended at <b>" + Math.floor(distance).toLocaleString() +
-    " m</b><br>Ember Shards: <b>" + runShards +
-    "</b><br>Total Shards: " + totalShards +
-    "<br>Best: " + best.toLocaleString() + " m";
+  bestText.innerHTML = `
+    Flight ended at <b>${Math.floor(distance).toLocaleString()} m</b><br>
+    Ember Shards: <b>${runShards}</b><br>
+    Total Shards: ${totalShards}<br>
+    Best: ${best.toLocaleString()} m
+  `;
 
   menu.classList.remove("hidden");
 }
@@ -444,6 +651,7 @@ function gameLoop(now) {
   bird.y += bird.velocity * dt;
 
   updateEmbers(dt);
+  updateTrails(dt);
 
   if (
     obstacles.length === 0 ||
@@ -475,16 +683,24 @@ function gameLoop(now) {
       const dx = bird.x - shardX;
       const dy = bird.y - obstacle.shardY;
 
-      if (dx * dx + dy * dy < (bird.radius + 14) * (bird.radius + 14)) {
+      if (
+        dx * dx + dy * dy <
+        (bird.radius + 14) * (bird.radius + 14)
+      ) {
         obstacle.shardCollected = true;
         runShards += 1;
       }
     }
   }
 
-  obstacles = obstacles.filter(obstacle => obstacle.x > -70);
+  obstacles = obstacles.filter(function(obstacle) {
+    return obstacle.x > -70;
+  });
 
-  if (bird.y - bird.radius < 0 || bird.y + bird.radius > H) {
+  if (
+    bird.y - bird.radius < 0 ||
+    bird.y + bird.radius > H
+  ) {
     gameOver();
     return;
   }
@@ -493,14 +709,24 @@ function gameLoop(now) {
   requestAnimationFrame(gameLoop);
 }
 
-function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
+function drawMountainLayer(
+  color,
+  baseY,
+  peakHeight,
+  spacing,
+  speed
+) {
   const offset = (distance * speed) % spacing;
 
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(-spacing - offset, H);
 
-  for (let x = -spacing - offset; x < W + spacing; x += spacing) {
+  for (
+    let x = -spacing - offset;
+    x < W + spacing;
+    x += spacing
+  ) {
     ctx.lineTo(x, baseY);
     ctx.lineTo(x + spacing / 2, baseY - peakHeight);
     ctx.lineTo(x + spacing, baseY);
@@ -511,11 +737,97 @@ function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
   ctx.fill();
 }
 
+function drawTrails() {
+  for (const trail of trails) {
+    const opacity = trail.life / trail.maxLife;
+
+    ctx.save();
+    ctx.globalAlpha = opacity * 0.75;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = trail.color;
+    ctx.fillStyle = trail.color;
+
+    ctx.beginPath();
+    ctx.arc(
+      trail.x,
+      trail.y,
+      trail.size * opacity,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function drawShard(obstacle) {
+  ctx.save();
+
+  ctx.translate(
+    obstacle.x + obstacle.width / 2,
+    obstacle.shardY
+  );
+
+  ctx.rotate(seconds * 2);
+  ctx.shadowBlur = 14;
+  ctx.shadowColor = "#ff7b2f";
+  ctx.fillStyle = "#ffd15c";
+
+  ctx.beginPath();
+  ctx.moveTo(0, -11);
+  ctx.lineTo(8, 0);
+  ctx.lineTo(0, 11);
+  ctx.lineTo(-8, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawPhoenix() {
+  const flap = (Math.sin(seconds * 18) + 1) / 2;
+  const phoenix = PHOENIXES[equippedPhoenix];
+
+  ctx.save();
+
+  ctx.translate(bird.x, bird.y - flap * 3);
+
+  ctx.rotate(
+    Math.max(
+      -0.38,
+      Math.min(0.58, bird.velocity / 650)
+    )
+  );
+
+  ctx.scale(
+    1.02 - flap * 0.06,
+    0.94 + flap * 0.12
+  );
+
+  ctx.filter = phoenix.filter;
+  ctx.shadowBlur = 18 + flap * 8;
+  ctx.shadowColor = phoenix.shadow;
+
+  if (phoenixSprite) {
+    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
+  } else {
+    ctx.fillStyle = phoenix.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 25, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
 function drawGame() {
   const sky = ctx.createLinearGradient(0, 0, 0, H);
+
   sky.addColorStop(0, "#35122f");
   sky.addColorStop(0.48, "#1a1022");
   sky.addColorStop(1, "#080914");
+
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
@@ -526,16 +838,26 @@ function drawGame() {
   for (const ember of embers) {
     ctx.globalAlpha = 0.55;
     ctx.fillStyle = ember.glow ? "#ffb04d" : "#ed542d";
+
     ctx.beginPath();
-    ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
+    ctx.arc(
+      ember.x,
+      ember.y,
+      ember.size,
+      0,
+      Math.PI * 2
+    );
     ctx.fill();
   }
 
   ctx.globalAlpha = 1;
 
+  drawTrails();
+
   for (const obstacle of obstacles) {
     ctx.fillStyle = "#281820";
     ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
+
     ctx.fillRect(
       obstacle.x,
       obstacle.bottom,
@@ -545,7 +867,14 @@ function drawGame() {
 
     ctx.strokeStyle = "#ff8c36";
     ctx.lineWidth = 3;
-    ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
+
+    ctx.strokeRect(
+      obstacle.x,
+      0,
+      obstacle.width,
+      obstacle.top
+    );
+
     ctx.strokeRect(
       obstacle.x,
       obstacle.bottom,
@@ -554,63 +883,36 @@ function drawGame() {
     );
 
     if (obstacle.shard && !obstacle.shardCollected) {
-      ctx.save();
-      ctx.translate(
-        obstacle.x + obstacle.width / 2,
-        obstacle.shardY
-      );
-      ctx.rotate(seconds * 2);
-      ctx.shadowBlur = 14;
-      ctx.shadowColor = "#ff7b2f";
-      ctx.fillStyle = "#ffd15c";
-
-      ctx.beginPath();
-      ctx.moveTo(0, -11);
-      ctx.lineTo(8, 0);
-      ctx.lineTo(0, 11);
-      ctx.lineTo(-8, 0);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.restore();
+      drawShard(obstacle);
     }
   }
 
-  const flap = (Math.sin(seconds * 18) + 1) / 2;
+  drawPhoenix();
 
-  ctx.save();
-  ctx.translate(bird.x, bird.y - flap * 3);
-  ctx.rotate(Math.max(-0.38, Math.min(0.58, bird.velocity / 650)));
-  ctx.scale(1.02 - flap * 0.06, 0.94 + flap * 0.12);
-
-  if (equippedPhoenix === "azure") {
-    ctx.filter = "hue-rotate(145deg) saturate(1.8) brightness(1.2)";
-    ctx.shadowBlur = 22 + flap * 8;
-    ctx.shadowColor = "#36dfff";
-  } else {
-    ctx.shadowBlur = 18 + flap * 8;
-    ctx.shadowColor = "#ff542f";
-  }
-
-  if (phoenixSprite) {
-    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
-  }
-
-  ctx.restore();
+  const phoenix = PHOENIXES[equippedPhoenix];
 
   ctx.fillStyle = "white";
   ctx.font = "bold 20px Arial";
-  ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
+  ctx.fillText(
+    Math.floor(distance).toLocaleString() + " m",
+    16,
+    32
+  );
 
   ctx.fillStyle = "#ffd15c";
   ctx.font = "bold 15px Arial";
-  ctx.fillText("SHARDS: " + runShards, 16, 57);
+  ctx.fillText(
+    "SHARDS: " + runShards,
+    16,
+    57
+  );
 
   ctx.textAlign = "right";
-  ctx.fillStyle = equippedPhoenix === "azure" ? "#67e7ff" : "#ffc65a";
+  ctx.fillStyle = phoenix.color;
   ctx.fillText(
-    (equippedPhoenix === "azure" ? "AZURE" : "EMBER") +
-    " · LEVEL " + (level + 1),
+    equippedPhoenix.toUpperCase() +
+    " · LEVEL " +
+    (level + 1),
     402,
     32
   );
