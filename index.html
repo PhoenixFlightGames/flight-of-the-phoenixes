@@ -54,6 +54,7 @@ button:active{transform:scale(.98)}
 <script>
 const c=document.getElementById("game");
 const x=c.getContext("2d");
+
 const menu=document.getElementById("menu");
 const roost=document.getElementById("roost");
 const reviveScreen=document.getElementById("reviveScreen");
@@ -72,36 +73,89 @@ const MAGNET_PULL=3.2;
 const P={
 ember:{name:"Ember Phoenix",sub:"Starter Phoenix — orange flame",color:"#ff8a35",shadow:"#ff542f",cost:0,filter:""},
 azure:{name:"Azure Phoenix",sub:"Stormborn feathers and a checkpoint Storm Shield",color:"#67e7ff",shadow:"#36dfff",cost:25,filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"},
-verdant:{name:"Verdant Phoenix",sub:"Wildfire plumage and Ember Magnet",color:"#62f58c",shadow:"#56f58a",cost:50,filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"}
+verdant:{name:"Verdant Phoenix",sub:"Wildfire plumage and Ember Magnet",color:"#62f58c",shadow:"#56f58a",cost:50,filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"},
+violet:{name:"Violet Phoenix",sub:"Arcane flame and checkpoint Arcane Pulse",color:"#c879ff",shadow:"#9e4bff",cost:100,filter:"hue-rotate(230deg) saturate(2.1) brightness(1.2)"}
 };
 
 let playing=false,holding=false;
 let bird,rocks,embers,trails,gate;
+
 let distance=0,seconds=0,level=0,runShards=0,lastTime=0;
 let checkpoint=0,checkpointFlash=0;
 let revivedThisRun=false,reviveSafety=0;
 let rebirthTimer=0,rebirthParticles=[];
 let stormShield=false,shieldFlash=0;
+let arcanePulse=false,pulseFlash=0;
 let zoneFlash=0,activeZone="EMBER CAVERNS";
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
 let highestCheckpoint=Number(localStorage.getItem("phoenixHighestCheckpoint"))||0;
+
 let azureUnlocked=localStorage.getItem("azureUnlocked")==="true";
 let verdantUnlocked=localStorage.getItem("verdantUnlocked")==="true";
+let violetUnlocked=localStorage.getItem("violetUnlocked")==="true";
+
 let equippedPhoenix=localStorage.getItem("equippedPhoenix")||"ember";
 
 if(equippedPhoenix==="azure"&&!azureUnlocked)equippedPhoenix="ember";
 if(equippedPhoenix==="verdant"&&!verdantUnlocked)equippedPhoenix="ember";
+if(equippedPhoenix==="violet"&&!violetUnlocked)equippedPhoenix="ember";
 
 function currentZone(){
-if(distance>=4000)return{name:"VERDANT WILDS",top:"#123826",mid:"#0b2018",bottom:"#06110d",m1:"#10271c",m2:"#163b27",m3:"#1d5131",particle:"#69ff9a",rock:"#173126",edge:"#72f59b"};
-if(distance>=2000)return{name:"AZURE PEAKS",top:"#10284b",mid:"#0b1733",bottom:"#060a18",m1:"#0b1d36",m2:"#102b48",m3:"#183a55",particle:"#55ddff",rock:"#172a3c",edge:"#65dfff"};
-return{name:"EMBER CAVERNS",top:"#35122f",mid:"#1a1022",bottom:"#080914",m1:"#1d1422",m2:"#281522",m3:"#351821",particle:"#ff7040",rock:"#241820",edge:"#ff8035"};
+if(distance>=4000){
+return{
+name:"VERDANT WILDS",
+top:"#123826",
+mid:"#0b2018",
+bottom:"#06110d",
+m1:"#10271c",
+m2:"#163b27",
+m3:"#1d5131",
+particle:"#69ff9a",
+rock:"#173126",
+edge:"#72f59b"
+};
+}
+
+if(distance>=2000){
+return{
+name:"AZURE PEAKS",
+top:"#10284b",
+mid:"#0b1733",
+bottom:"#060a18",
+m1:"#0b1d36",
+m2:"#102b48",
+m3:"#183a55",
+particle:"#55ddff",
+rock:"#172a3c",
+edge:"#65dfff"
+};
+}
+
+return{
+name:"EMBER CAVERNS",
+top:"#35122f",
+mid:"#1a1022",
+bottom:"#080914",
+m1:"#1d1422",
+m2:"#281522",
+m3:"#351821",
+particle:"#ff7040",
+rock:"#241820",
+edge:"#ff8035"
+};
 }
 
 function updateMenuText(){
-bestText.innerHTML=`Best: ${best.toLocaleString()} m<br>Highest checkpoint: ${highestCheckpoint?highestCheckpoint.toLocaleString()+" m":"Not reached"}`;
+bestText.innerHTML=`
+Best: ${best.toLocaleString()} m<br>
+Highest checkpoint: ${
+highestCheckpoint
+?highestCheckpoint.toLocaleString()+" m"
+:"Not reached"
+}
+`;
 }
 
 updateMenuText();
@@ -112,15 +166,25 @@ let sprite=null;
 img.onload=function(){
 const s=document.createElement("canvas");
 const q=s.getContext("2d");
+
 s.width=img.naturalWidth;
 s.height=img.naturalHeight;
+
 q.drawImage(img,0,0);
 
 const d=q.getImageData(0,0,s.width,s.height);
 
 for(let i=0;i<d.data.length;i+=4){
-const r=d.data[i],g=d.data[i+1],b=d.data[i+2];
-if(r>215&&g>215&&b>215&&Math.max(r,g,b)-Math.min(r,g,b)<28)d.data[i+3]=0;
+const r=d.data[i];
+const g=d.data[i+1];
+const b=d.data[i+2];
+
+if(
+r>215&&g>215&&b>215&&
+Math.max(r,g,b)-Math.min(r,g,b)<28
+){
+d.data[i+3]=0;
+}
 }
 
 q.putImageData(d,0,0);
@@ -135,11 +199,15 @@ localStorage.setItem("phoenixShards",totalShards);
 localStorage.setItem("phoenixHighestCheckpoint",highestCheckpoint);
 localStorage.setItem("azureUnlocked",azureUnlocked);
 localStorage.setItem("verdantUnlocked",verdantUnlocked);
+localStorage.setItem("violetUnlocked",violetUnlocked);
 localStorage.setItem("equippedPhoenix",equippedPhoenix);
 }
 
 function unlocked(key){
-return key==="ember"||(key==="azure"&&azureUnlocked)||(key==="verdant"&&verdantUnlocked);
+return key==="ember"||
+(key==="azure"&&azureUnlocked)||
+(key==="verdant"&&verdantUnlocked)||
+(key==="violet"&&violetUnlocked);
 }
 
 function dot(color){
@@ -162,10 +230,31 @@ const phoenix=P[key];
 const active=equippedPhoenix===key;
 
 if(!unlocked(key)){
-return `<div class="card"><strong style="color:${phoenix.color}">${dot(phoenix.color)}${phoenix.name}</strong><br>${phoenix.sub}<button onclick="unlockPhoenix('${key}')">Unlock for ${phoenix.cost} Shards</button></div>`;
+return `
+<div class="card">
+<strong style="color:${phoenix.color}">
+${dot(phoenix.color)}${phoenix.name}
+</strong><br>
+${phoenix.sub}
+<button onclick="unlockPhoenix('${key}')">
+Unlock for ${phoenix.cost} Shards
+</button>
+</div>`;
 }
 
-return `<div class="card ${active?"equipped":""}"><strong style="color:${phoenix.color}">${dot(phoenix.color)}${phoenix.name}</strong><br>${phoenix.sub}<br>${active?"Equipped":"Unlocked"}${active?"":`<button onclick="equipPhoenix('${key}')">Equip ${phoenix.name}</button>`}</div>`;
+return `
+<div class="card ${active?"equipped":""}">
+<strong style="color:${phoenix.color}">
+${dot(phoenix.color)}${phoenix.name}
+</strong><br>
+${phoenix.sub}<br>
+${active?"Equipped":"Unlocked"}
+${active?"":`
+<button onclick="equipPhoenix('${key}')">
+Equip ${phoenix.name}
+</button>
+`}
+</div>`;
 }
 
 function renderRoost(){
@@ -175,8 +264,12 @@ phoenixList.innerHTML=`
 ${phoenixCard("ember")}
 ${phoenixCard("azure")}
 ${phoenixCard("verdant")}
-<div class="card"><strong>Violet Phoenix</strong><br>Arcane flame — 100 shards</div>
-<div class="card"><strong>Solar Phoenix</strong><br>Sunfire wings — 175 shards</div>
+${phoenixCard("violet")}
+
+<div class="card">
+<strong>Solar Phoenix</strong><br>
+Sunfire wings — 175 shards
+</div>
 `;
 }
 
@@ -192,6 +285,7 @@ totalShards-=phoenix.cost;
 
 if(key==="azure")azureUnlocked=true;
 if(key==="verdant")verdantUnlocked=true;
+if(key==="violet")violetUnlocked=true;
 
 equippedPhoenix=key;
 save();
@@ -200,6 +294,7 @@ renderRoost();
 
 function equipPhoenix(key){
 if(!unlocked(key))return;
+
 equippedPhoenix=key;
 save();
 renderRoost();
@@ -218,6 +313,7 @@ drift:Math.random()*7
 function startGame(){
 playing=true;
 holding=false;
+
 bird={x:95,y:380,velocity:0,radius:25};
 rocks=[];
 embers=makeEmbers();
@@ -236,8 +332,11 @@ rebirthTimer=0;
 rebirthParticles=[];
 stormShield=false;
 shieldFlash=0;
+arcanePulse=false;
+pulseFlash=0;
 zoneFlash=0;
 activeZone="EMBER CAVERNS";
+
 lastTime=performance.now();
 
 addRock(720);
@@ -269,18 +368,14 @@ let gap=Math.max(150,220-level*7);
 let min=gap/2+45;
 let max=H-gap/2-45;
 let middle=min+Math.random()*(max-min);
-let pattern="standard";
 
 if(distance>=5000&&Math.random()<.26){
 gap=Math.max(140,gap-18);
 middle=H/2+(Math.random()-.5)*35;
-pattern="center";
 }else if(distance>=3000&&Math.random()<.30){
 middle=H*.69+Math.random()*70;
-pattern="low";
 }else if(distance>=2000&&Math.random()<.32){
 middle=H*.20+Math.random()*70;
-pattern="high";
 }
 
 middle=Math.max(gap/2+45,Math.min(H-gap/2-45,middle));
@@ -301,7 +396,6 @@ width,
 top,
 bottom,
 face,
-pattern,
 shard:Math.random()<.35,
 shardX:start+width/2,
 shardY:top+42+Math.random()*(gap-84),
@@ -314,10 +408,18 @@ if(!playing)return;
 
 playing=false;
 
-const canRevive=checkpoint>0&&!revivedThisRun&&totalShards>=REVIVE_COST;
+const canRevive=
+checkpoint>0&&
+!revivedThisRun&&
+totalShards>=REVIVE_COST;
 
 if(canRevive){
-reviveText.innerHTML=`You reached the ${checkpoint.toLocaleString()} m checkpoint.<br><br>Spend <b>${REVIVE_COST} saved Ember Shards</b><br>to return to that checkpoint?`;
+reviveText.innerHTML=`
+You reached the ${checkpoint.toLocaleString()} m checkpoint.<br><br>
+Spend <b>${REVIVE_COST} saved Ember Shards</b><br>
+to return to that checkpoint?
+`;
+
 reviveScreen.classList.remove("hidden");
 return;
 }
@@ -327,12 +429,19 @@ endFlight();
 
 function endFlight(){
 reviveScreen.classList.add("hidden");
+
 best=Math.max(best,Math.floor(distance));
 totalShards+=runShards;
+
 save();
 updateMenuText();
 
-bestText.innerHTML+=`<br><br>Flight ended at <b>${Math.floor(distance).toLocaleString()} m</b><br>Run Shards: <b>${runShards}</b><br>Total Shards: ${totalShards}`;
+bestText.innerHTML+=`
+<br><br>
+Flight ended at <b>${Math.floor(distance).toLocaleString()} m</b><br>
+Run Shards: <b>${runShards}</b><br>
+Total Shards: ${totalShards}
+`;
 
 menu.classList.remove("hidden");
 }
@@ -344,7 +453,13 @@ totalShards-=REVIVE_COST;
 revivedThisRun=true;
 distance=checkpoint;
 
-bird={x:95,y:H/2,velocity:0,radius:25};
+bird={
+x:95,
+y:H/2,
+velocity:0,
+radius:25
+};
+
 rocks=[];
 trails=[];
 gate=null;
@@ -354,6 +469,8 @@ rebirthTimer=2.5;
 rebirthParticles=[];
 stormShield=false;
 shieldFlash=0;
+arcanePulse=false;
+pulseFlash=0;
 
 for(let i=0;i<30;i++){
 const angle=Math.random()*Math.PI*2;
@@ -391,6 +508,7 @@ distance+=52*dt;
 level=Math.min(10,Math.floor(distance/500));
 
 const newZone=currentZone().name;
+
 if(newZone!==activeZone){
 activeZone=newZone;
 zoneFlash=2.6;
@@ -400,6 +518,7 @@ checkpointFlash=Math.max(0,checkpointFlash-dt);
 reviveSafety=Math.max(0,reviveSafety-dt);
 rebirthTimer=Math.max(0,rebirthTimer-dt);
 shieldFlash=Math.max(0,shieldFlash-dt);
+pulseFlash=Math.max(0,pulseFlash-dt);
 zoneFlash=Math.max(0,zoneFlash-dt);
 
 rebirthParticles=rebirthParticles.filter(particle=>{
@@ -409,6 +528,7 @@ particle.y+=particle.velocityY*dt;
 particle.velocityX*=.96;
 particle.velocityY*=.96;
 particle.velocityY+=18*dt;
+
 return particle.life>0;
 });
 
@@ -447,6 +567,7 @@ trail.life-=dt;
 trail.x+=trail.velocityX*dt;
 trail.y+=trail.velocityY*dt;
 trail.velocityY+=12*dt;
+
 return trail.life>0&&trail.x>-70;
 });
 
@@ -454,7 +575,10 @@ if(
 reviveSafety<=0&&
 !calm&&
 !gate&&
-(rocks.length===0||rocks[rocks.length-1].x<340)
+(
+rocks.length===0||
+rocks[rocks.length-1].x<340
+)
 ){
 addRock();
 }
@@ -463,6 +587,18 @@ const speed=Math.min(265,155+level*11);
 
 for(const rock of rocks){
 rock.x-=speed*dt;
+
+if(
+equippedPhoenix==="violet"&&
+arcanePulse&&
+rock.x<340
+){
+arcanePulse=false;
+pulseFlash=.9;
+rock.x=-220;
+rock.shardX=-220;
+continue;
+}
 
 if(rock.shard&&!rock.shardCollected){
 rock.shardX-=speed*dt;
@@ -474,6 +610,7 @@ const shardDistance=Math.hypot(dx,dy);
 
 if(shardDistance<MAGNET_RANGE){
 const pull=(1-shardDistance/MAGNET_RANGE)*MAGNET_PULL;
+
 rock.shardX+=dx*pull*dt;
 rock.shardY+=dy*pull*dt;
 }
@@ -488,8 +625,13 @@ runShards++;
 }
 }
 
-const hitSide=bird.x+bird.radius>rock.x&&bird.x-bird.radius<rock.x+rock.width;
-const hitRock=bird.y-bird.radius<rock.top||bird.y+bird.radius>rock.bottom;
+const hitSide=
+bird.x+bird.radius>rock.x&&
+bird.x-bird.radius<rock.x+rock.width;
+
+const hitRock=
+bird.y-bird.radius<rock.top||
+bird.y+bird.radius>rock.bottom;
 
 if(hitSide&&hitRock){
 if(equippedPhoenix==="azure"&&stormShield){
@@ -508,7 +650,13 @@ return;
 rocks=rocks.filter(rock=>rock.x>-150);
 
 if(calm&&!gate&&rocks.length===0&&reviveSafety<=0){
-gate={x:470,y:H/2,radius:68,value:nextCheckpoint,pulse:0};
+gate={
+x:470,
+y:H/2,
+radius:68,
+value:nextCheckpoint,
+pulse:0
+};
 }
 
 if(gate){
@@ -525,6 +673,11 @@ stormShield=true;
 shieldFlash=1.1;
 }
 
+if(equippedPhoenix==="violet"){
+arcanePulse=true;
+pulseFlash=.8;
+}
+
 if(checkpoint>highestCheckpoint){
 highestCheckpoint=checkpoint;
 save();
@@ -535,7 +688,13 @@ addRock(760);
 }
 }
 
-if(reviveSafety<=0&&(bird.y-bird.radius<0||bird.y+bird.radius>H)){
+if(
+reviveSafety<=0&&
+(
+bird.y-bird.radius<0||
+bird.y+bird.radius>H
+)
+){
 triggerGameOver();
 return;
 }
@@ -580,6 +739,7 @@ mountains(z.m3,705,110,112,.26);
 for(const ember of embers){
 x.globalAlpha=.55;
 x.fillStyle=ember.size>2?z.particle:"#ed542d";
+
 x.beginPath();
 x.arc(ember.x,ember.y,ember.size,0,Math.PI*2);
 x.fill();
@@ -615,7 +775,10 @@ x.moveTo(rock.x,0);
 x.lineTo(rock.x+rock.width,0);
 
 for(let i=6;i>=0;i--){
-x.lineTo(rock.x+rock.face[i].dx,rock.face[i].top);
+x.lineTo(
+rock.x+rock.face[i].dx,
+rock.face[i].top
+);
 }
 
 x.closePath();
@@ -627,7 +790,10 @@ x.moveTo(rock.x,H);
 x.lineTo(rock.x+rock.width,H);
 
 for(let i=6;i>=0;i--){
-x.lineTo(rock.x+rock.face[i].dx,rock.face[i].bottom);
+x.lineTo(
+rock.x+rock.face[i].dx,
+rock.face[i].bottom
+);
 }
 
 x.closePath();
@@ -694,7 +860,13 @@ x.shadowColor=particle.color;
 x.fillStyle=particle.color;
 
 x.beginPath();
-x.arc(particle.x,particle.y,particle.size*alpha,0,Math.PI*2);
+x.arc(
+particle.x,
+particle.y,
+particle.size*alpha,
+0,
+Math.PI*2
+);
 x.fill();
 
 x.restore();
@@ -750,8 +922,29 @@ x.stroke();
 x.restore();
 }
 
+if(equippedPhoenix==="violet"&&(arcanePulse||pulseFlash>0)){
+const pulseSize=arcanePulse?42:42+(1-pulseFlash/.9)*150;
+
+x.save();
+x.globalAlpha=arcanePulse?.34:Math.max(0,pulseFlash/.9);
+x.translate(bird.x,bird.y);
+x.strokeStyle="#c879ff";
+x.lineWidth=3;
+x.shadowBlur=28;
+x.shadowColor="#9e4bff";
+
+x.beginPath();
+x.arc(0,0,pulseSize,0,Math.PI*2);
+x.stroke();
+
+x.restore();
+}
+
 if(rebirthTimer>0||reviveSafety>0){
-const glowStrength=rebirthTimer>0?Math.min(1,rebirthTimer/.8):reviveSafety/1.8;
+const glowStrength=
+rebirthTimer>0
+?Math.min(1,rebirthTimer/.8)
+:reviveSafety/1.8;
 
 x.save();
 x.globalAlpha=.28+glowStrength*.32;
@@ -760,7 +953,13 @@ x.shadowColor="#67e7ff";
 x.fillStyle="#67e7ff";
 
 x.beginPath();
-x.arc(bird.x,bird.y,46+Math.sin(seconds*16)*5,0,Math.PI*2);
+x.arc(
+bird.x,
+bird.y,
+46+Math.sin(seconds*16)*5,
+0,
+Math.PI*2
+);
 x.fill();
 
 x.restore();
@@ -803,7 +1002,21 @@ x.fillText("EMBER MAGNET",16,80);
 if(equippedPhoenix==="azure"){
 x.fillStyle=stormShield?"#67e7ff":"#8a9ba8";
 x.font="bold 13px Arial";
-x.fillText(stormShield?"STORM SHIELD READY":"STORM SHIELD USED",16,80);
+x.fillText(
+stormShield?"STORM SHIELD READY":"STORM SHIELD USED",
+16,
+80
+);
+}
+
+if(equippedPhoenix==="violet"){
+x.fillStyle=arcanePulse?"#c879ff":"#8a6a9f";
+x.font="bold 13px Arial";
+x.fillText(
+arcanePulse?"ARCANE PULSE READY":"ARCANE PULSE USED",
+16,
+80
+);
 }
 
 x.textAlign="right";
@@ -816,7 +1029,12 @@ if(checkpointFlash>0){
 x.textAlign="center";
 x.fillStyle="#ffd15c";
 x.font="bold 25px Arial";
-x.fillText("CHECKPOINT "+checkpoint.toLocaleString()+" m",W/2,118);
+
+x.fillText(
+"CHECKPOINT "+checkpoint.toLocaleString()+" m",
+W/2,
+118
+);
 
 x.font="bold 17px Arial";
 x.fillText("+1 EMBER SHARD",W/2,146);
@@ -824,6 +1042,11 @@ x.fillText("+1 EMBER SHARD",W/2,146);
 if(equippedPhoenix==="azure"){
 x.fillStyle="#67e7ff";
 x.fillText("STORM SHIELD CHARGED",W/2,171);
+}
+
+if(equippedPhoenix==="violet"){
+x.fillStyle="#c879ff";
+x.fillText("ARCANE PULSE CHARGED",W/2,171);
 }
 
 x.textAlign="left";
@@ -840,7 +1063,11 @@ x.shadowColor=z.edge;
 x.fillStyle=z.edge;
 x.font="bold 28px Arial";
 
-x.fillText(activeZone,W/2,215);
+x.fillText(
+activeZone,
+W/2,
+215
+);
 
 x.font="bold 16px Arial";
 x.fillStyle="#ffffff";
@@ -866,11 +1093,20 @@ x.shadowColor="#67e7ff";
 x.fillStyle="#67e7ff";
 x.font="bold 27px Arial";
 
-x.fillText("PHOENIX REBORN",W/2,190);
+x.fillText(
+"PHOENIX REBORN",
+W/2,
+190
+);
 
 x.font="bold 16px Arial";
 x.fillStyle="#ffd15c";
-x.fillText("A second flame takes flight",W/2,217);
+
+x.fillText(
+"A second flame takes flight",
+W/2,
+217
+);
 
 x.restore();
 x.textAlign="left";
