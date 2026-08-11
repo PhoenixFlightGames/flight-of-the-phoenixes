@@ -71,30 +71,9 @@ const MAGNET_RANGE=80;
 const MAGNET_PULL=3.2;
 
 const P={
-ember:{
-name:"Ember Phoenix",
-sub:"Starter Phoenix — orange flame",
-color:"#ff8a35",
-shadow:"#ff542f",
-cost:0,
-filter:""
-},
-azure:{
-name:"Azure Phoenix",
-sub:"Stormborn feathers and a checkpoint Storm Shield",
-color:"#67e7ff",
-shadow:"#36dfff",
-cost:25,
-filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"
-},
-verdant:{
-name:"Verdant Phoenix",
-sub:"Wildfire plumage and Ember Magnet",
-color:"#62f58c",
-shadow:"#56f58a",
-cost:50,
-filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
-}
+ember:{name:"Ember Phoenix",sub:"Starter Phoenix — orange flame",color:"#ff8a35",shadow:"#ff542f",cost:0,filter:""},
+azure:{name:"Azure Phoenix",sub:"Stormborn feathers and a checkpoint Storm Shield",color:"#67e7ff",shadow:"#36dfff",cost:25,filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"},
+verdant:{name:"Verdant Phoenix",sub:"Wildfire plumage and Ember Magnet",color:"#62f58c",shadow:"#56f58a",cost:50,filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"}
 };
 
 let playing=false,holding=false;
@@ -104,9 +83,10 @@ let distance=0,seconds=0,level=0,runShards=0,lastTime=0;
 let checkpoint=0,checkpointFlash=0;
 let revivedThisRun=false,reviveSafety=0;
 let rebirthTimer=0,rebirthParticles=[];
+let stormShield=false,shieldFlash=0;
 
-let stormShield=false;
-let shieldFlash=0;
+let zoneFlash=0;
+let activeZone="EMBER CAVERNS";
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
@@ -120,6 +100,21 @@ if(equippedPhoenix==="azure"&&!azureUnlocked)equippedPhoenix="ember";
 if(equippedPhoenix==="verdant"&&!verdantUnlocked)equippedPhoenix="ember";
 
 function currentZone(){
+if(distance>=4000){
+return{
+name:"VERDANT WILDS",
+top:"#123826",
+mid:"#0b2018",
+bottom:"#06110d",
+m1:"#10271c",
+m2:"#163b27",
+m3:"#1d5131",
+particle:"#69ff9a",
+rock:"#173126",
+edge:"#72f59b"
+};
+}
+
 if(distance>=2000){
 return{
 name:"AZURE PEAKS",
@@ -335,6 +330,8 @@ rebirthTimer=0;
 rebirthParticles=[];
 stormShield=false;
 shieldFlash=0;
+zoneFlash=0;
+activeZone="EMBER CAVERNS";
 
 lastTime=performance.now();
 
@@ -495,10 +492,18 @@ seconds+=dt;
 distance+=52*dt;
 level=Math.min(3,Math.floor(distance/500));
 
+const newZone=currentZone().name;
+
+if(newZone!==activeZone){
+activeZone=newZone;
+zoneFlash=2.6;
+}
+
 checkpointFlash=Math.max(0,checkpointFlash-dt);
 reviveSafety=Math.max(0,reviveSafety-dt);
 rebirthTimer=Math.max(0,rebirthTimer-dt);
 shieldFlash=Math.max(0,shieldFlash-dt);
+zoneFlash=Math.max(0,zoneFlash-dt);
 
 rebirthParticles=rebirthParticles.filter(particle=>{
 particle.life-=dt;
@@ -978,6 +983,36 @@ x.fillStyle="#67e7ff";
 x.fillText("STORM SHIELD CHARGED",W/2,171);
 }
 
+x.textAlign="left";
+}
+
+if(zoneFlash>0){
+const alpha=Math.min(1,zoneFlash*2);
+
+x.save();
+x.globalAlpha=alpha;
+x.textAlign="center";
+x.shadowBlur=20;
+x.shadowColor=z.edge;
+x.fillStyle=z.edge;
+x.font="bold 28px Arial";
+
+x.fillText(
+activeZone,
+W/2,
+215
+);
+
+x.font="bold 16px Arial";
+x.fillStyle="#ffffff";
+
+if(activeZone==="VERDANT WILDS"){
+x.fillText("Where emerald flames awaken",W/2,242);
+}else if(activeZone==="AZURE PEAKS"){
+x.fillText("Stormborn heights rise ahead",W/2,242);
+}
+
+x.restore();
 x.textAlign="left";
 }
 
