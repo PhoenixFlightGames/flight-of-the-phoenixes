@@ -6,7 +6,9 @@
 <title>Flight of the Phoenixes</title>
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body {
   margin: 0;
@@ -130,7 +132,6 @@ let embers;
 let distance;
 let seconds;
 let lastTime;
-let difficulty;
 
 let best = Number(localStorage.getItem("phoenixBest")) || 0;
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
@@ -167,7 +168,6 @@ function startGame() {
   embers = makeEmbers();
   distance = 0;
   seconds = 0;
-  difficulty = 0;
   lastTime = performance.now();
 
   menu.style.display = "none";
@@ -202,10 +202,8 @@ window.addEventListener("mouseup", function() {
 });
 
 function addObstacle() {
-  const gap = 220 - difficulty * 50;
-  const safeTop = gap / 2 + 42;
-  const safeBottom = 760 - gap / 2 - 42;
-  const middle = safeTop + Math.random() * (safeBottom - safeTop);
+  const gap = 220;
+  const middle = 160 + Math.random() * 440;
 
   obstacles.push({
     x: 440,
@@ -250,33 +248,20 @@ function gameLoop(now) {
   lastTime = now;
 
   seconds += dt;
-  distance += 52 * dt;
-
-  /*
-    Difficulty reaches its maximum at 2,500 m.
-    At maximum: 225 speed, 170 px gaps, closer towers.
-  */
-  difficulty = Math.min(1, distance / 2500);
 
   bird.velocity += (holding ? -720 : 920) * dt;
   bird.velocity = Math.max(-360, Math.min(420, bird.velocity));
   bird.y += bird.velocity * dt;
 
+  distance += 52 * dt;
   updateEmbers(dt);
 
-  const towerSpacing = 235 - difficulty * 25;
-
-  if (
-    obstacles.length === 0 ||
-    obstacles[obstacles.length - 1].x < towerSpacing
-  ) {
+  if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 235) {
     addObstacle();
   }
 
-  const obstacleSpeed = 155 + difficulty * 70;
-
   for (const obstacle of obstacles) {
-    obstacle.x -= obstacleSpeed * dt;
+    obstacle.x -= 155 * dt;
 
     const hitSide =
       bird.x + bird.radius > obstacle.x &&
@@ -432,3 +417,73 @@ function drawVolcanicTower(x, width, startY, endY, isTop) {
 }
 
 function drawPhoenix() {
+  const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
+
+  const flap = (Math.sin(seconds * 18) + 1) / 2;
+  const widthScale = 1.02 - flap * 0.06;
+  const heightScale = 0.94 + flap * 0.12;
+  const flightLift = flap * 3;
+
+  ctx.save();
+  ctx.translate(bird.x, bird.y - flightLift);
+  ctx.rotate(tilt);
+  ctx.scale(widthScale, heightScale);
+
+  ctx.shadowBlur = 18 + flap * 8;
+  ctx.shadowColor = "#ff542f";
+
+  if (phoenixSprite) {
+    ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
+  } else {
+    ctx.fillStyle = "#ff842f";
+    ctx.beginPath();
+    ctx.moveTo(-25, 0);
+    ctx.quadraticCurveTo(-4, -27, 24, -8);
+    ctx.quadraticCurveTo(32, 0, 24, 8);
+    ctx.quadraticCurveTo(-4, 27, -25, 0);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+function drawGame() {
+  drawAshlands();
+  drawEmbers();
+
+  for (const obstacle of obstacles) {
+    drawVolcanicTower(
+      obstacle.x,
+      obstacle.width,
+      0,
+      obstacle.top,
+      true
+    );
+
+    drawVolcanicTower(
+      obstacle.x,
+      obstacle.width,
+      obstacle.bottom,
+      760,
+      false
+    );
+  }
+
+  drawPhoenix();
+
+  ctx.fillStyle = "white";
+  ctx.font = "bold 20px Arial";
+  ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
+
+  ctx.font = "16px Arial";
+  ctx.fillText(seconds.toFixed(1) + " s", 16, 56);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#ffc65a";
+  ctx.font = "bold 15px Arial";
+  ctx.fillText("ASHLANDS", 402, 32);
+  ctx.textAlign = "left";
+}
+</script>
+</body>
+</html>
