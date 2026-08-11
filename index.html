@@ -8,12 +8,11 @@
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080914;font-family:Arial,sans-serif}
 canvas{display:block;width:100vw;height:100vh;touch-action:none}
-.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px;text-align:center;color:#fff;background:rgba(8,9,20,.94)}
+.screen{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;color:#fff;text-align:center;background:rgba(8,9,20,.94)}
 .hidden{display:none!important}
 h1{margin:0 0 22px;color:#ffc65a;font-size:40px;line-height:1.15;text-shadow:0 0 20px #f05224}
 p{max-width:360px;color:#e1dbe5;font-size:18px;line-height:1.45}
 button{width:min(360px,86vw);margin:8px 0;padding:16px;border:2px solid #ffc65a;border-radius:14px;background:#592540;color:#fff;font-size:20px;font-weight:bold;cursor:pointer}
-button:active{transform:scale(.98)}
 .roost{width:min(390px,92vw);max-height:64vh;overflow-y:auto}
 .shards{color:#ffd15c;font-size:22px;font-weight:bold}
 .card{margin:9px 0;padding:14px 15px;border:1px solid #744357;border-radius:12px;background:#221522;text-align:left}
@@ -38,7 +37,7 @@ button:active{transform:scale(.98)}
 <p>Hold the screen to rise. Release to glide.<br>Avoid volcanic rock and collect Ember Shards.</p>
 <button onclick="startGame()">Endless Flight</button>
 <button onclick="openRoost()">Phoenix Roost</button>
-<p id="bestText">Best: 0 m</p>
+<p id="bestText"></p>
 </div>
 
 <div id="roost" class="screen hidden">
@@ -57,8 +56,7 @@ const bestText=document.getElementById("bestText");
 const roostShards=document.getElementById("roostShards");
 const phoenixList=document.getElementById("phoenixList");
 
-const W=420,H=760;
-const CHECKPOINT_DISTANCE=500;
+const W=420,H=760,CHECKPOINT_DISTANCE=500;
 
 const PHOENIXES={
 ember:{name:"Ember Phoenix",sub:"Starter Phoenix — orange flame",color:"#ff8a35",shadow:"#ff542f",cost:0,filter:""},
@@ -97,16 +95,14 @@ const phoenixImage=new Image();
 let phoenixSprite=null;
 
 phoenixImage.onload=function(){
-const spriteCanvas=document.createElement("canvas");
-spriteCanvas.width=phoenixImage.naturalWidth;
-spriteCanvas.height=phoenixImage.naturalHeight;
+const temp=document.createElement("canvas");
+temp.width=phoenixImage.naturalWidth;
+temp.height=phoenixImage.naturalHeight;
 
-const spriteCtx=spriteCanvas.getContext("2d");
-spriteCtx.drawImage(phoenixImage,0,0);
+const tctx=temp.getContext("2d");
+tctx.drawImage(phoenixImage,0,0);
 
-const pixels=spriteCtx.getImageData(
-0,0,spriteCanvas.width,spriteCanvas.height
-);
+const pixels=tctx.getImageData(0,0,temp.width,temp.height);
 
 for(let i=0;i<pixels.data.length;i+=4){
 const r=pixels.data[i];
@@ -121,15 +117,15 @@ pixels.data[i+3]=0;
 }
 }
 
-spriteCtx.putImageData(pixels,0,0);
-phoenixSprite=spriteCanvas;
+tctx.putImageData(pixels,0,0);
+phoenixSprite=temp;
 };
 
 phoenixImage.src="IMG_3821.jpeg";
 
 function save(){
-localStorage.setItem("phoenixShards",total);
 localStorage.setItem("phoenixBest",best);
+localStorage.setItem("phoenixShards",total);
 localStorage.setItem("phoenixHighestCheckpoint",highestCheckpoint);
 localStorage.setItem("azureUnlocked",azure);
 localStorage.setItem("verdantUnlocked",verdant);
@@ -142,7 +138,7 @@ return key==="ember"||
 (key==="verdant"&&verdant);
 }
 
-function dot(color){
+function preview(color){
 return `<span class="preview" style="background:${color};box-shadow:0 0 12px ${color}"></span>`;
 }
 
@@ -166,7 +162,7 @@ if(!hasPhoenix){
 return `
 <div class="card" style="border-color:${phoenix.color}">
 <strong style="color:${phoenix.color}">
-${dot(phoenix.color)}${phoenix.name}
+${preview(phoenix.color)}${phoenix.name}
 </strong><br>
 ${phoenix.sub}
 <button
@@ -182,7 +178,7 @@ return `
 <div class="card ${active?"equipped":""}"
 style="border-color:${active?phoenix.color:"#744357"}">
 <strong style="color:${phoenix.color}">
-${dot(phoenix.color)}${phoenix.name}
+${preview(phoenix.color)}${phoenix.name}
 </strong><br>
 ${phoenix.sub}<br>
 ${active?"Equipped":"Unlocked"}
@@ -206,21 +202,21 @@ ${phoenixCard("verdant")}
 
 <div class="card">
 <strong style="color:#cb79ff">
-${dot("#cb79ff")}Violet Phoenix
+${preview("#cb79ff")}Violet Phoenix
 </strong><br>
 Arcane flame — 100 shards
 </div>
 
 <div class="card">
 <strong style="color:#ffd65c">
-${dot("#ffd65c")}Solar Phoenix
+${preview("#ffd65c")}Solar Phoenix
 </strong><br>
 Sunfire wings — 175 shards
 </div>
 
 <div class="card">
 <strong style="color:#8a8795">
-${dot("#8a8795")}Obsidian Phoenix
+${preview("#8a8795")}Obsidian Phoenix
 </strong><br>
 Ancient ash — 300 shards
 </div>`;
@@ -246,7 +242,7 @@ if(key==="verdant")verdant=true;
 equipped=key;
 save();
 renderRoost();
-celebrate(phoenix.name,phoenix.color);
+showUnlock(phoenix.name,phoenix.color);
 }
 
 function equipPhoenix(key){
@@ -256,36 +252,28 @@ save();
 renderRoost();
 }
 
-function celebrate(name,color){
-const message=document.createElement("div");
+function showUnlock(name,color){
+const box=document.createElement("div");
 
-message.innerHTML=`
+box.innerHTML=`
 <div style="font-size:40px">✦</div>
 <div>${name} Unlocked!</div>
 <div style="font-size:16px;margin-top:8px;color:#fff">
 Now equipped for your next flight.
 </div>`;
 
-message.style.cssText=`
-position:fixed;
-z-index:30;
-left:50%;
-top:50%;
-width:min(330px,82vw);
-padding:25px 18px;
-border:2px solid ${color};
-border-radius:18px;
-background:#0c0f1ef5;
-color:${color};
+box.style.cssText=`
+position:fixed;z-index:30;left:50%;top:50%;
+width:min(330px,82vw);padding:25px 18px;
+border:2px solid ${color};border-radius:18px;
+background:#0c0f1ef5;color:${color};
 box-shadow:0 0 35px ${color};
-text-align:center;
-font-size:25px;
-font-weight:bold;
+text-align:center;font-size:25px;font-weight:bold;
 animation:unlockPop 2.2s ease forwards;
 `;
 
-document.body.appendChild(message);
-setTimeout(()=>message.remove(),2300);
+document.body.appendChild(box);
+setTimeout(()=>box.remove(),2300);
 }
 
 function makeEmbers(){
@@ -349,14 +337,13 @@ window.addEventListener("mouseup",()=>holding=false);
 
 function addRock(start=660){
 const gap=220-level*8;
-const minimum=gap/2+45;
-const maximum=H-gap/2-45;
-const middle=minimum+Math.random()*(maximum-minimum);
+const min=gap/2+45;
+const max=H-gap/2-45;
+const middle=min+Math.random()*(max-min);
 
 const width=118;
 const top=middle-gap/2;
 const bottom=middle+gap/2;
-
 const face=[];
 
 for(let i=0;i<=6;i++){
@@ -380,9 +367,11 @@ got:false
 }
 
 function createCheckpointGate(value){
+rocks=[];
+
 checkpointGate={
 x:470,
-y:bird.y,
+y:H/2,
 radius:68,
 value:value,
 pulse:0
@@ -391,7 +380,7 @@ pulse:0
 
 function completeCheckpoint(){
 checkpoint=checkpointGate.value;
-runShards++;
+runShards+=1;
 checkpointFlash=2.6;
 
 if(checkpoint>highestCheckpoint){
@@ -400,6 +389,8 @@ save();
 }
 
 checkpointGate=null;
+
+addRock(760);
 }
 
 function updateEmbers(dt){
@@ -471,10 +462,7 @@ checkpointFlash=Math.max(0,checkpointFlash-dt);
 
 const nextCheckpoint=checkpoint+CHECKPOINT_DISTANCE;
 
-if(
-!checkpointGate&&
-distance>=nextCheckpoint-110
-){
+if(!checkpointGate&&distance>=nextCheckpoint-110){
 createCheckpointGate(nextCheckpoint);
 }
 
@@ -485,7 +473,10 @@ bird.y+=bird.v*dt;
 updateEmbers(dt);
 updateTrails(dt);
 
-if(!rocks.length||rocks[rocks.length-1].x<340){
+if(
+!checkpointGate&&
+(!rocks.length||rocks[rocks.length-1].x<340)
+){
 addRock();
 }
 
@@ -668,12 +659,12 @@ ctx.stroke();
 
 for(let i=0;i<8;i++){
 const angle=i*Math.PI/4+seconds*2;
-const flameX=Math.cos(angle)*gate.radius*.55;
-const flameY=Math.sin(angle)*gate.radius;
+const px=Math.cos(angle)*gate.radius*.55;
+const py=Math.sin(angle)*gate.radius;
 
 ctx.fillStyle=i%2?"#ffd15c":color;
 ctx.beginPath();
-ctx.arc(flameX,flameY,4,0,Math.PI*2);
+ctx.arc(px,py,4,0,Math.PI*2);
 ctx.fill();
 }
 
@@ -684,11 +675,7 @@ ctx.globalAlpha=.8;
 ctx.fillStyle="#ffd15c";
 ctx.font="bold 13px Arial";
 ctx.textAlign="center";
-ctx.fillText(
-"CHECKPOINT",
-gate.x,
-gate.y-gate.radius-16
-);
+ctx.fillText("CHECKPOINT",gate.x,gate.y-gate.radius-16);
 ctx.restore();
 }
 
@@ -757,11 +744,7 @@ const phoenix=PHOENIXES[equipped];
 
 ctx.fillStyle="#fff";
 ctx.font="bold 20px Arial";
-ctx.fillText(
-Math.floor(distance).toLocaleString()+" m",
-16,
-32
-);
+ctx.fillText(Math.floor(distance).toLocaleString()+" m",16,32);
 
 ctx.fillStyle="#ffd15c";
 ctx.font="bold 15px Arial";
