@@ -6,87 +6,120 @@
 <title>Flight of the Phoenixes</title>
 
 <style>
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #080914;
-  font-family: Arial, sans-serif;
-}
-
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
-  touch-action: none;
-}
-
-#menu {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  padding: 28px;
-  color: white;
-  background: rgba(8, 9, 20, .93);
-}
-
-h1 {
-  margin: 0 0 25px;
-  color: #ffc65a;
-  font-size: 40px;
-  line-height: 1.15;
-  text-shadow: 0 0 20px #f05224;
-}
-
-p {
-  max-width: 360px;
-  font-size: 19px;
-  line-height: 1.45;
-  color: #e1dbe5;
-}
-
-button {
-  width: min(360px, 86vw);
-  margin: 22px 0 12px;
-  padding: 18px;
-  border: 2px solid #ffc65a;
-  border-radius: 14px;
-  background: #592540;
-  color: white;
-  font-size: 22px;
-  font-weight: bold;
-}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080914;font-family:Arial,sans-serif}
+canvas{display:block;width:100vw;height:100vh;touch-action:none}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px;color:#fff;background:rgba(8,9,20,.94)}
+.hidden{display:none!important}
+h1{margin:0 0 22px;color:#ffc65a;font-size:40px;line-height:1.15;text-shadow:0 0 20px #f05224}
+p{max-width:360px;font-size:18px;line-height:1.45;color:#e1dbe5}
+button{width:min(360px,86vw);margin:8px 0;padding:16px;border:2px solid #ffc65a;border-radius:14px;background:#592540;color:#fff;font-size:20px;font-weight:bold}
+.roost{width:min(390px,92vw);max-height:70vh;overflow:auto}
+.shards{color:#ffd15c;font-size:22px;font-weight:bold}
+.card{display:flex;align-items:center;justify-content:space-between;margin:9px 0;padding:13px 15px;border:1px solid #744357;border-radius:12px;background:#221522;text-align:left}
+.card strong{color:#ffc65a}
+.equipped{border-color:#ffc65a;background:#402033}
+.locked{opacity:.68}
 </style>
 </head>
 
 <body>
 <canvas id="game" width="420" height="760"></canvas>
 
-<div id="menu">
+<div id="menu" class="screen">
   <h1>FLIGHT OF THE<br>PHOENIXES</h1>
-  <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and fly as far as you can.</p>
+  <p>Hold the screen to rise. Release to glide.<br>Avoid the obstacles and collect Ember Shards.</p>
   <button onclick="startGame()">Endless Flight</button>
+  <button onclick="openRoost()">Phoenix Roost</button>
   <p id="bestText">Best: 0 m</p>
+</div>
+
+<div id="roost" class="screen hidden">
+  <h1>PHOENIX ROOST</h1>
+  <p class="shards" id="roostShards"></p>
+
+  <div class="roost">
+    <div class="card equipped">
+      <div>
+        <strong>Ember Phoenix</strong><br>
+        Starter Phoenix
+      </div>
+      <div>Equipped</div>
+    </div>
+
+    <div class="card locked">
+      <div>
+        <strong>Azure Phoenix</strong><br>
+        Stormborn feathers
+      </div>
+      <div>25 shards</div>
+    </div>
+
+    <div class="card locked">
+      <div>
+        <strong>Verdant Phoenix</strong><br>
+        Wildfire plumage
+      </div>
+      <div>50 shards</div>
+    </div>
+
+    <div class="card locked">
+      <div>
+        <strong>Violet Phoenix</strong><br>
+        Arcane flame
+      </div>
+      <div>100 shards</div>
+    </div>
+
+    <div class="card locked">
+      <div>
+        <strong>Solar Phoenix</strong><br>
+        Sunfire wings
+      </div>
+      <div>175 shards</div>
+    </div>
+
+    <div class="card locked">
+      <div>
+        <strong>Obsidian Phoenix</strong><br>
+        Ancient ash
+      </div>
+      <div>300 shards</div>
+    </div>
+  </div>
+
+  <button onclick="closeRoost()">Back to Flight</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const menu = document.getElementById("menu");
+const roost = document.getElementById("roost");
 const bestText = document.getElementById("bestText");
+const roostShards = document.getElementById("roostShards");
 
 const W = 420;
 const H = 760;
 
 const phoenixImage = new Image();
 let phoenixSprite = null;
+
+let playing = false;
+let holding = false;
+let bird;
+let obstacles;
+let embers;
+let distance;
+let seconds;
+let lastTime;
+let level;
+let runShards;
+
+let best = Number(localStorage.getItem("phoenixBest")) || 0;
+let totalShards = Number(localStorage.getItem("phoenixShards")) || 0;
+
+bestText.textContent = "Best: " + best.toLocaleString() + " m";
 
 phoenixImage.onload = function() {
   const spriteCanvas = document.createElement("canvas");
@@ -125,21 +158,16 @@ phoenixImage.onload = function() {
 
 phoenixImage.src = "IMG_3821.jpeg";
 
-let playing = false;
-let holding = false;
-let bird;
-let obstacles;
-let embers;
-let distance;
-let seconds;
-let lastTime;
-let level;
-let runShards;
+function openRoost() {
+  roostShards.textContent = "Ember Shards: " + totalShards;
+  menu.classList.add("hidden");
+  roost.classList.remove("hidden");
+}
 
-let best = Number(localStorage.getItem("phoenixBest")) || 0;
-let totalShards = Number(localStorage.getItem("phoenixShards")) || 0;
-
-bestText.textContent = "Best: " + best.toLocaleString() + " m";
+function closeRoost() {
+  roost.classList.add("hidden");
+  menu.classList.remove("hidden");
+}
 
 function makeEmbers() {
   const particles = [];
@@ -177,7 +205,7 @@ function startGame() {
   runShards = 0;
   lastTime = performance.now();
 
-  menu.style.display = "none";
+  menu.classList.add("hidden");
   requestAnimationFrame(gameLoop);
 }
 
@@ -235,26 +263,6 @@ function updateEmbers(dt) {
     if (ember.x < -8) {
       ember.x = W + 8;
       ember.y = Math.random() * H;
-      ember.size = 1 + Math.random() * 2.5;
-      ember.speed = 14 + Math.random() * 32;
-    }
-  }
-}
-
-function collectShards() {
-  for (const obstacle of obstacles) {
-    if (!obstacle.shard || obstacle.shardCollected) {
-      continue;
-    }
-
-    const shardX = obstacle.x + obstacle.width / 2;
-    const dx = bird.x - shardX;
-    const dy = bird.y - obstacle.shardY;
-    const hitDistance = bird.radius + 14;
-
-    if (dx * dx + dy * dy < hitDistance * hitDistance) {
-      obstacle.shardCollected = true;
-      runShards += 1;
     }
   }
 }
@@ -263,7 +271,6 @@ function gameOver() {
   if (!playing) return;
 
   playing = false;
-
   best = Math.max(best, Math.floor(distance));
   totalShards += runShards;
 
@@ -276,7 +283,7 @@ function gameOver() {
     "</b><br>Total Shards: " + totalShards +
     "<br>Best: " + best.toLocaleString() + " m";
 
-  menu.style.display = "flex";
+  menu.classList.remove("hidden");
 }
 
 function gameLoop(now) {
@@ -287,7 +294,6 @@ function gameLoop(now) {
 
   seconds += dt;
   distance += 52 * dt;
-
   level = Math.min(3, Math.floor(distance / 500));
 
   bird.velocity += (holding ? -720 : 920) * dt;
@@ -320,9 +326,18 @@ function gameLoop(now) {
       gameOver();
       return;
     }
-  }
 
-  collectShards();
+    if (obstacle.shard && !obstacle.shardCollected) {
+      const shardX = obstacle.x + obstacle.width / 2;
+      const dx = bird.x - shardX;
+      const dy = bird.y - obstacle.shardY;
+
+      if (dx * dx + dy * dy < (bird.radius + 14) * (bird.radius + 14)) {
+        obstacle.shardCollected = true;
+        runShards += 1;
+      }
+    }
+  }
 
   obstacles = obstacles.filter(obstacle => obstacle.x > -70);
 
@@ -343,9 +358,8 @@ function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
   ctx.moveTo(-spacing - offset, H);
 
   for (let x = -spacing - offset; x < W + spacing; x += spacing) {
-    const peakX = x + spacing / 2;
     ctx.lineTo(x, baseY);
-    ctx.lineTo(peakX, baseY - peakHeight);
+    ctx.lineTo(x + spacing / 2, baseY - peakHeight);
     ctx.lineTo(x + spacing, baseY);
   }
 
@@ -354,7 +368,7 @@ function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
   ctx.fill();
 }
 
-function drawAshlands() {
+function drawGame() {
   const sky = ctx.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, "#35122f");
   sky.addColorStop(0.48, "#1a1022");
@@ -362,202 +376,88 @@ function drawAshlands() {
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, H);
 
-  const glow = ctx.createRadialGradient(210, 590, 10, 210, 590, 290);
-  glow.addColorStop(0, "rgba(200, 54, 25, .26)");
-  glow.addColorStop(1, "rgba(200, 54, 25, 0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 300, W, 460);
-
   drawMountainLayer("#1d1422", 575, 92, 180, 0.08);
   drawMountainLayer("#281522", 640, 125, 145, 0.16);
   drawMountainLayer("#351821", 705, 110, 112, 0.26);
 
-  ctx.fillStyle = "rgba(255, 116, 45, .18)";
-  ctx.fillRect(0, 716, W, 44);
-}
-
-function drawEmbers() {
   for (const ember of embers) {
-    const pulse = 0.6 + Math.sin(seconds * 5 + ember.drift) * 0.4;
-
-    ctx.save();
-
-    if (ember.glow) {
-      ctx.shadowBlur = 8;
-      ctx.shadowColor = "#ff5b2c";
-    }
-
-    ctx.globalAlpha = 0.35 + pulse * 0.55;
+    ctx.globalAlpha = 0.55;
     ctx.fillStyle = ember.glow ? "#ffb04d" : "#ed542d";
-
     ctx.beginPath();
-    ctx.arc(ember.x, ember.y, ember.size * pulse, 0, Math.PI * 2);
+    ctx.arc(ember.x, ember.y, ember.size, 0, Math.PI * 2);
     ctx.fill();
-
-    ctx.restore();
-  }
-}
-
-function drawVolcanicTower(x, width, startY, endY, isTop) {
-  const capY = isTop ? endY : startY;
-  const bodyStart = isTop ? 0 : startY;
-  const bodyEnd = isTop ? endY : H;
-
-  ctx.fillStyle = "#281820";
-  ctx.fillRect(x, bodyStart, width, bodyEnd - bodyStart);
-
-  ctx.fillStyle = "#3b2023";
-  ctx.beginPath();
-
-  if (isTop) {
-    ctx.moveTo(x, capY);
-    ctx.lineTo(x + width * 0.25, capY - 14);
-    ctx.lineTo(x + width * 0.55, capY - 6);
-    ctx.lineTo(x + width * 0.8, capY - 16);
-    ctx.lineTo(x + width, capY);
-  } else {
-    ctx.moveTo(x, capY);
-    ctx.lineTo(x + width * 0.22, capY + 16);
-    ctx.lineTo(x + width * 0.58, capY + 7);
-    ctx.lineTo(x + width * 0.82, capY + 16);
-    ctx.lineTo(x + width, capY);
   }
 
-  ctx.closePath();
-  ctx.fill();
+  ctx.globalAlpha = 1;
 
-  ctx.strokeStyle = "#d75a2e";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x, bodyStart, width, bodyEnd - bodyStart);
+  for (const obstacle of obstacles) {
+    ctx.fillStyle = "#281820";
+    ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
+    ctx.fillRect(
+      obstacle.x,
+      obstacle.bottom,
+      obstacle.width,
+      H - obstacle.bottom
+    );
 
-  ctx.strokeStyle = "#ff9c45";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
+    ctx.strokeStyle = "#ff8c36";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
+    ctx.strokeRect(
+      obstacle.x,
+      obstacle.bottom,
+      obstacle.width,
+      H - obstacle.bottom
+    );
 
-  if (isTop) {
-    ctx.moveTo(x, capY);
-    ctx.lineTo(x + width * 0.25, capY - 14);
-    ctx.lineTo(x + width * 0.55, capY - 6);
-    ctx.lineTo(x + width * 0.8, capY - 16);
-    ctx.lineTo(x + width, capY);
-  } else {
-    ctx.moveTo(x, capY);
-    ctx.lineTo(x + width * 0.22, capY + 16);
-    ctx.lineTo(x + width * 0.58, capY + 7);
-    ctx.lineTo(x + width * 0.82, capY + 16);
-    ctx.lineTo(x + width, capY);
+    if (obstacle.shard && !obstacle.shardCollected) {
+      ctx.save();
+      ctx.translate(
+        obstacle.x + obstacle.width / 2,
+        obstacle.shardY
+      );
+      ctx.rotate(seconds * 2);
+      ctx.shadowBlur = 14;
+      ctx.shadowColor = "#ff7b2f";
+      ctx.fillStyle = "#ffd15c";
+
+      ctx.beginPath();
+      ctx.moveTo(0, -11);
+      ctx.lineTo(8, 0);
+      ctx.lineTo(0, 11);
+      ctx.lineTo(-8, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.restore();
+    }
   }
 
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(255, 119, 48, .65)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x + width * 0.27, bodyStart + 20);
-  ctx.lineTo(x + width * 0.42, bodyEnd - 32);
-  ctx.moveTo(x + width * 0.72, bodyStart + 55);
-  ctx.lineTo(x + width * 0.58, bodyEnd - 18);
-  ctx.stroke();
-}
-
-function drawShard(x, y) {
-  const glow = 0.85 + Math.sin(seconds * 7 + x * 0.02) * 0.15;
-
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(seconds * 1.8);
-
-  ctx.shadowBlur = 16;
-  ctx.shadowColor = "#ff7b2f";
-  ctx.fillStyle = "#ffd15c";
-
-  ctx.beginPath();
-  ctx.moveTo(0, -11 * glow);
-  ctx.lineTo(8 * glow, 0);
-  ctx.lineTo(0, 11 * glow);
-  ctx.lineTo(-8 * glow, 0);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.strokeStyle = "#fff2a1";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawPhoenix() {
-  const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
   const flap = (Math.sin(seconds * 18) + 1) / 2;
-  const widthScale = 1.02 - flap * 0.06;
-  const heightScale = 0.94 + flap * 0.12;
-  const flightLift = flap * 3;
 
   ctx.save();
-  ctx.translate(bird.x, bird.y - flightLift);
-  ctx.rotate(tilt);
-  ctx.scale(widthScale, heightScale);
-
+  ctx.translate(bird.x, bird.y - flap * 3);
+  ctx.rotate(Math.max(-0.38, Math.min(0.58, bird.velocity / 650)));
+  ctx.scale(1.02 - flap * 0.06, 0.94 + flap * 0.12);
   ctx.shadowBlur = 18 + flap * 8;
   ctx.shadowColor = "#ff542f";
 
   if (phoenixSprite) {
     ctx.drawImage(phoenixSprite, -52, -52, 104, 104);
-  } else {
-    ctx.fillStyle = "#ff842f";
-    ctx.beginPath();
-    ctx.moveTo(-25, 0);
-    ctx.quadraticCurveTo(-4, -27, 24, -8);
-    ctx.quadraticCurveTo(32, 0, 24, 8);
-    ctx.quadraticCurveTo(-4, 27, -25, 0);
-    ctx.fill();
   }
 
   ctx.restore();
-}
-
-function drawGame() {
-  drawAshlands();
-  drawEmbers();
-
-  for (const obstacle of obstacles) {
-    drawVolcanicTower(
-      obstacle.x,
-      obstacle.width,
-      0,
-      obstacle.top,
-      true
-    );
-
-    drawVolcanicTower(
-      obstacle.x,
-      obstacle.width,
-      obstacle.bottom,
-      H,
-      false
-    );
-
-    if (obstacle.shard && !obstacle.shardCollected) {
-      drawShard(
-        obstacle.x + obstacle.width / 2,
-        obstacle.shardY
-      );
-    }
-  }
-
-  drawPhoenix();
 
   ctx.fillStyle = "white";
   ctx.font = "bold 20px Arial";
   ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
 
-  ctx.font = "bold 15px Arial";
   ctx.fillStyle = "#ffd15c";
+  ctx.font = "bold 15px Arial";
   ctx.fillText("SHARDS: " + runShards, 16, 57);
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#ffc65a";
-  ctx.font = "bold 15px Arial";
   ctx.fillText("ASHLANDS · LEVEL " + (level + 1), 402, 32);
   ctx.textAlign = "left";
 }
