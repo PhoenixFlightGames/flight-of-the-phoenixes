@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Flight of the Phoenixes</title>
-
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#080914;font-family:Arial,sans-serif}
@@ -26,7 +25,6 @@ button:active{transform:scale(.98)}
 .end-button{border-color:#a87d92;background:#392333}
 </style>
 </head>
-
 <body>
 
 <canvas id="game" width="420" height="760"></canvas>
@@ -49,12 +47,8 @@ button:active{transform:scale(.98)}
 <div id="reviveScreen" class="screen hidden">
 <h1 class="revive-title">PHOENIX FALLEN</h1>
 <p id="reviveText"></p>
-<button class="revive-button" onclick="reviveFlight()">
-Revive for 15 Shards
-</button>
-<button class="end-button" onclick="endFlight()">
-End Flight
-</button>
+<button class="revive-button" onclick="reviveFlight()">Revive for 15 Shards</button>
+<button class="end-button" onclick="endFlight()">End Flight</button>
 </div>
 
 <script>
@@ -73,21 +67,39 @@ const W=420,H=760;
 const CHECKPOINT_DISTANCE=1000;
 const CHECKPOINT_CALM_DISTANCE=220;
 const REVIVE_COST=15;
+const MAGNET_RANGE=145;
+const MAGNET_PULL=4.4;
 
 const P={
-ember:{name:"Ember Phoenix",sub:"Starter Phoenix — orange flame",color:"#ff8a35",shadow:"#ff542f",cost:0,filter:""},
-azure:{name:"Azure Phoenix",sub:"Stormborn feathers and cyan flame",color:"#67e7ff",shadow:"#36dfff",cost:25,filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"},
-verdant:{name:"Verdant Phoenix",sub:"Wildfire plumage and emerald flame",color:"#62f58c",shadow:"#56f58a",cost:50,filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"}
+ember:{
+name:"Ember Phoenix",
+sub:"Starter Phoenix — orange flame",
+color:"#ff8a35",
+shadow:"#ff542f",
+cost:0,
+filter:""
+},
+azure:{
+name:"Azure Phoenix",
+sub:"Stormborn feathers and cyan flame",
+color:"#67e7ff",
+shadow:"#36dfff",
+cost:25,
+filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"
+},
+verdant:{
+name:"Verdant Phoenix",
+sub:"Wildfire plumage and Ember Magnet",
+color:"#62f58c",
+shadow:"#56f58a",
+cost:50,
+filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
+}
 };
 
 let playing=false;
 let holding=false;
-
-let bird;
-let rocks;
-let embers;
-let trails;
-let gate;
+let bird,rocks,embers,trails,gate;
 
 let distance=0;
 let seconds=0;
@@ -97,7 +109,6 @@ let lastTime=0;
 
 let checkpoint=0;
 let checkpointFlash=0;
-
 let revivedThisRun=false;
 let reviveSafety=0;
 
@@ -323,11 +334,12 @@ distance=0;
 seconds=0;
 level=0;
 runShards=0;
+
 checkpoint=0;
 checkpointFlash=0;
-
 revivedThisRun=false;
 reviveSafety=0;
+
 rebirthTimer=0;
 rebirthParticles=[];
 
@@ -380,6 +392,7 @@ top:top,
 bottom:bottom,
 face:face,
 shard:Math.random()<.35,
+shardX:start+width/2,
 shardY:top+42+Math.random()*(gap-84),
 shardCollected:false
 });
@@ -485,7 +498,6 @@ lastTime=now;
 
 seconds+=dt;
 distance+=52*dt;
-
 level=Math.min(3,Math.floor(distance/500));
 
 checkpointFlash=Math.max(0,checkpointFlash-dt);
@@ -559,6 +571,31 @@ const speed=155+level*10;
 for(const rock of rocks){
 rock.x-=speed*dt;
 
+if(rock.shard&&!rock.shardCollected){
+rock.shardX-=speed*dt;
+
+if(equippedPhoenix==="verdant"){
+const dx=bird.x-rock.shardX;
+const dy=bird.y-rock.shardY;
+const shardDistance=Math.hypot(dx,dy);
+
+if(shardDistance<MAGNET_RANGE){
+const pull=(1-shardDistance/MAGNET_RANGE)*MAGNET_PULL;
+
+rock.shardX+=dx*pull*dt;
+rock.shardY+=dy*pull*dt;
+}
+}
+
+const dx=bird.x-rock.shardX;
+const dy=bird.y-rock.shardY;
+
+if(dx*dx+dy*dy<(bird.radius+14)*(bird.radius+14)){
+rock.shardCollected=true;
+runShards++;
+}
+}
+
 const hitSide=
 bird.x+bird.radius>rock.x&&
 bird.x-bird.radius<rock.x+rock.width;
@@ -570,16 +607,6 @@ bird.y+bird.radius>rock.bottom;
 if(hitSide&&hitRock){
 triggerGameOver();
 return;
-}
-
-if(rock.shard&&!rock.shardCollected){
-const dx=bird.x-(rock.x+rock.width/2);
-const dy=bird.y-rock.shardY;
-
-if(dx*dx+dy*dy<(bird.radius+14)*(bird.radius+14)){
-rock.shardCollected=true;
-runShards++;
-}
 }
 }
 
@@ -728,7 +755,7 @@ x.stroke();
 
 if(rock.shard&&!rock.shardCollected){
 x.save();
-x.translate(rock.x+rock.width/2,rock.shardY);
+x.translate(rock.shardX,rock.shardY);
 x.rotate(seconds*2);
 
 x.shadowBlur=14;
@@ -801,6 +828,33 @@ x.restore();
 const flap=(Math.sin(seconds*18)+1)/2;
 const phoenix=P[equippedPhoenix];
 
+if(equippedPhoenix==="verdant"){
+const magnetPulse=1+Math.sin(seconds*7)*.08;
+
+x.save();
+x.translate(bird.x,bird.y);
+x.scale(magnetPulse,magnetPulse);
+
+x.globalAlpha=.18;
+x.fillStyle="#62f58c";
+x.shadowBlur=28;
+x.shadowColor="#56f58a";
+
+x.beginPath();
+x.arc(0,0,MAGNET_RANGE,0,Math.PI*2);
+x.fill();
+
+x.globalAlpha=.5;
+x.strokeStyle="#62f58c";
+x.lineWidth=1.5;
+
+x.beginPath();
+x.arc(0,0,MAGNET_RANGE,0,Math.PI*2);
+x.stroke();
+
+x.restore();
+}
+
 if(rebirthTimer>0||reviveSafety>0){
 const glowStrength=
 rebirthTimer>0
@@ -854,8 +908,15 @@ x.fillStyle="#ffd15c";
 x.font="bold 15px Arial";
 x.fillText("SHARDS: "+runShards,16,57);
 
+if(equippedPhoenix==="verdant"){
+x.fillStyle="#62f58c";
+x.font="bold 13px Arial";
+x.fillText("EMBER MAGNET",16,80);
+}
+
 x.textAlign="right";
 x.fillStyle=phoenix.color;
+x.font="bold 15px Arial";
 x.fillText(z.name+" · LEVEL "+(level+1),402,32);
 x.textAlign="left";
 
