@@ -134,8 +134,11 @@ let distance;
 let seconds;
 let lastTime;
 let level;
+let runShards;
 
 let best = Number(localStorage.getItem("phoenixBest")) || 0;
+let totalShards = Number(localStorage.getItem("phoenixShards")) || 0;
+
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
 
 function makeEmbers() {
@@ -171,6 +174,7 @@ function startGame() {
   distance = 0;
   seconds = 0;
   level = 0;
+  runShards = 0;
   lastTime = performance.now();
 
   menu.style.display = "none";
@@ -216,7 +220,10 @@ function addObstacle() {
     x: 440,
     width: 55,
     top: middle - gap / 2,
-    bottom: middle + gap / 2
+    bottom: middle + gap / 2,
+    shard: Math.random() < 0.65,
+    shardY: middle,
+    shardCollected: false
   });
 }
 
@@ -234,16 +241,40 @@ function updateEmbers(dt) {
   }
 }
 
+function collectShards() {
+  for (const obstacle of obstacles) {
+    if (!obstacle.shard || obstacle.shardCollected) {
+      continue;
+    }
+
+    const shardX = obstacle.x + obstacle.width / 2;
+    const dx = bird.x - shardX;
+    const dy = bird.y - obstacle.shardY;
+    const hitDistance = bird.radius + 14;
+
+    if (dx * dx + dy * dy < hitDistance * hitDistance) {
+      obstacle.shardCollected = true;
+      runShards += 1;
+    }
+  }
+}
+
 function gameOver() {
   if (!playing) return;
 
   playing = false;
+
   best = Math.max(best, Math.floor(distance));
+  totalShards += runShards;
+
   localStorage.setItem("phoenixBest", best);
+  localStorage.setItem("phoenixShards", totalShards);
 
   bestText.innerHTML =
     "Flight ended at <b>" + Math.floor(distance).toLocaleString() +
-    " m</b><br>Best: " + best.toLocaleString() + " m";
+    " m</b><br>Ember Shards: <b>" + runShards +
+    "</b><br>Total Shards: " + totalShards +
+    "<br>Best: " + best.toLocaleString() + " m";
 
   menu.style.display = "flex";
 }
@@ -257,13 +288,6 @@ function gameLoop(now) {
   seconds += dt;
   distance += 52 * dt;
 
-  /*
-    Four gentle stages:
-    Level 1: 0 m
-    Level 2: 500 m
-    Level 3: 1,000 m
-    Level 4: 1,500 m and beyond
-  */
   level = Math.min(3, Math.floor(distance / 500));
 
   bird.velocity += (holding ? -720 : 920) * dt;
@@ -297,6 +321,8 @@ function gameLoop(now) {
       return;
     }
   }
+
+  collectShards();
 
   obstacles = obstacles.filter(obstacle => obstacle.x > -70);
 
@@ -434,6 +460,32 @@ function drawVolcanicTower(x, width, startY, endY, isTop) {
   ctx.stroke();
 }
 
+function drawShard(x, y) {
+  const glow = 0.85 + Math.sin(seconds * 7 + x * 0.02) * 0.15;
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(seconds * 1.8);
+
+  ctx.shadowBlur = 16;
+  ctx.shadowColor = "#ff7b2f";
+  ctx.fillStyle = "#ffd15c";
+
+  ctx.beginPath();
+  ctx.moveTo(0, -11 * glow);
+  ctx.lineTo(8 * glow, 0);
+  ctx.lineTo(0, 11 * glow);
+  ctx.lineTo(-8 * glow, 0);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = "#fff2a1";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
 function drawPhoenix() {
   const tilt = Math.max(-0.38, Math.min(0.58, bird.velocity / 650));
   const flap = (Math.sin(seconds * 18) + 1) / 2;
@@ -484,6 +536,13 @@ function drawGame() {
       H,
       false
     );
+
+    if (obstacle.shard && !obstacle.shardCollected) {
+      drawShard(
+        obstacle.x + obstacle.width / 2,
+        obstacle.shardY
+      );
+    }
   }
 
   drawPhoenix();
@@ -492,8 +551,9 @@ function drawGame() {
   ctx.font = "bold 20px Arial";
   ctx.fillText(Math.floor(distance).toLocaleString() + " m", 16, 32);
 
-  ctx.font = "16px Arial";
-  ctx.fillText(seconds.toFixed(1) + " s", 16, 56);
+  ctx.font = "bold 15px Arial";
+  ctx.fillStyle = "#ffd15c";
+  ctx.fillText("SHARDS: " + runShards, 16, 57);
 
   ctx.textAlign = "right";
   ctx.fillStyle = "#ffc65a";
