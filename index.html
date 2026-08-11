@@ -128,12 +128,30 @@ let playing = false;
 let holding = false;
 let bird;
 let obstacles;
+let embers;
 let distance;
 let seconds;
 let lastTime;
 
 let best = Number(localStorage.getItem("phoenixBest")) || 0;
 bestText.textContent = "Best: " + best.toLocaleString() + " m";
+
+function makeEmbers() {
+  const particles = [];
+
+  for (let i = 0; i < 42; i++) {
+    particles.push({
+      x: Math.random() * 420,
+      y: Math.random() * 760,
+      size: 1 + Math.random() * 2.5,
+      speed: 14 + Math.random() * 32,
+      drift: Math.random() * Math.PI * 2,
+      glow: Math.random() > 0.45
+    });
+  }
+
+  return particles;
+}
 
 function startGame() {
   playing = true;
@@ -147,6 +165,7 @@ function startGame() {
   };
 
   obstacles = [];
+  embers = makeEmbers();
   distance = 0;
   seconds = 0;
   lastTime = performance.now();
@@ -208,6 +227,20 @@ function gameOver() {
   menu.style.display = "flex";
 }
 
+function updateEmbers(dt) {
+  for (const ember of embers) {
+    ember.x -= ember.speed * dt;
+    ember.y += Math.sin(seconds * 2 + ember.drift) * 12 * dt;
+
+    if (ember.x < -8) {
+      ember.x = 428;
+      ember.y = Math.random() * 760;
+      ember.size = 1 + Math.random() * 2.5;
+      ember.speed = 14 + Math.random() * 32;
+    }
+  }
+}
+
 function gameLoop(now) {
   if (!playing) return;
 
@@ -221,6 +254,7 @@ function gameLoop(now) {
   bird.y += bird.velocity * dt;
 
   distance += 52 * dt;
+  updateEmbers(dt);
 
   if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < 235) {
     addObstacle();
@@ -252,6 +286,134 @@ function gameLoop(now) {
 
   drawGame();
   requestAnimationFrame(gameLoop);
+}
+
+function drawMountainLayer(color, baseY, peakHeight, spacing, speed) {
+  const offset = (distance * speed) % spacing;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(-spacing - offset, 760);
+
+  for (let x = -spacing - offset; x < 420 + spacing; x += spacing) {
+    const peakX = x + spacing / 2;
+    ctx.lineTo(x, baseY);
+    ctx.lineTo(peakX, baseY - peakHeight);
+    ctx.lineTo(x + spacing, baseY);
+  }
+
+  ctx.lineTo(420 + spacing, 760);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawAshlands() {
+  const sky = ctx.createLinearGradient(0, 0, 0, 760);
+  sky.addColorStop(0, "#35122f");
+  sky.addColorStop(0.48, "#1a1022");
+  sky.addColorStop(1, "#080914");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, 420, 760);
+
+  const horizonGlow = ctx.createRadialGradient(210, 590, 10, 210, 590, 290);
+  horizonGlow.addColorStop(0, "rgba(200, 54, 25, .26)");
+  horizonGlow.addColorStop(1, "rgba(200, 54, 25, 0)");
+  ctx.fillStyle = horizonGlow;
+  ctx.fillRect(0, 300, 420, 460);
+
+  drawMountainLayer("#1d1422", 575, 92, 180, 0.08);
+  drawMountainLayer("#281522", 640, 125, 145, 0.16);
+  drawMountainLayer("#351821", 705, 110, 112, 0.26);
+
+  ctx.fillStyle = "rgba(255, 116, 45, .18)";
+  ctx.fillRect(0, 716, 420, 44);
+}
+
+function drawEmbers() {
+  for (const ember of embers) {
+    const pulse = 0.6 + Math.sin(seconds * 5 + ember.drift) * 0.4;
+
+    ctx.save();
+
+    if (ember.glow) {
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = "#ff5b2c";
+    }
+
+    ctx.globalAlpha = 0.35 + pulse * 0.55;
+    ctx.fillStyle = ember.glow ? "#ffb04d" : "#ed542d";
+
+    ctx.beginPath();
+    ctx.arc(ember.x, ember.y, ember.size * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function drawVolcanicTower(x, width, startY, endY, isTop) {
+  const capY = isTop ? endY : startY;
+  const bodyStart = isTop ? 0 : startY;
+  const bodyEnd = isTop ? endY : 760;
+
+  ctx.fillStyle = "#281820";
+  ctx.fillRect(x, bodyStart, width, bodyEnd - bodyStart);
+
+  ctx.fillStyle = "#3b2023";
+
+  if (isTop) {
+    ctx.beginPath();
+    ctx.moveTo(x, capY);
+    ctx.lineTo(x + width * 0.25, capY - 14);
+    ctx.lineTo(x + width * 0.55, capY - 6);
+    ctx.lineTo(x + width * 0.8, capY - 16);
+    ctx.lineTo(x + width, capY);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x, capY);
+    ctx.lineTo(x + width * 0.22, capY + 16);
+    ctx.lineTo(x + width * 0.58, capY + 7);
+    ctx.lineTo(x + width * 0.82, capY + 16);
+    ctx.lineTo(x + width, capY);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "#d75a2e";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, bodyStart, width, bodyEnd - bodyStart);
+
+  ctx.strokeStyle = "#ff9c45";
+  ctx.lineWidth = 2;
+
+  if (isTop) {
+    ctx.beginPath();
+    ctx.moveTo(x, capY);
+    ctx.lineTo(x + width * 0.25, capY - 14);
+    ctx.lineTo(x + width * 0.55, capY - 6);
+    ctx.lineTo(x + width * 0.8, capY - 16);
+    ctx.lineTo(x + width, capY);
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(x, capY);
+    ctx.lineTo(x + width * 0.22, capY + 16);
+    ctx.lineTo(x + width * 0.58, capY + 7);
+    ctx.lineTo(x + width * 0.82, capY + 16);
+    ctx.lineTo(x + width, capY);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "rgba(255, 119, 48, .65)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x + width * 0.27, bodyStart + 20);
+  ctx.lineTo(x + width * 0.42, bodyEnd - 32);
+  ctx.moveTo(x + width * 0.72, bodyStart + 55);
+  ctx.lineTo(x + width * 0.58, bodyEnd - 18);
+  ctx.stroke();
 }
 
 function drawPhoenix() {
@@ -286,33 +448,24 @@ function drawPhoenix() {
 }
 
 function drawGame() {
-  const sky = ctx.createLinearGradient(0, 0, 0, 760);
-  sky.addColorStop(0, "#2b102d");
-  sky.addColorStop(1, "#080914");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, 420, 760);
+  drawAshlands();
+  drawEmbers();
 
   for (const obstacle of obstacles) {
-    ctx.fillStyle = "#2c1820";
-    ctx.fillRect(obstacle.x, 0, obstacle.width, obstacle.top);
-
-    ctx.fillRect(
+    drawVolcanicTower(
       obstacle.x,
-      obstacle.bottom,
       obstacle.width,
-      760 - obstacle.bottom
+      0,
+      obstacle.top,
+      true
     );
 
-    ctx.strokeStyle = "#ff8c36";
-    ctx.lineWidth = 3;
-
-    ctx.strokeRect(obstacle.x, 0, obstacle.width, obstacle.top);
-
-    ctx.strokeRect(
+    drawVolcanicTower(
       obstacle.x,
-      obstacle.bottom,
       obstacle.width,
-      760 - obstacle.bottom
+      obstacle.bottom,
+      760,
+      false
     );
   }
 
@@ -326,6 +479,8 @@ function drawGame() {
   ctx.fillText(seconds.toFixed(1) + " s", 16, 56);
 
   ctx.textAlign = "right";
+  ctx.fillStyle = "#ffc65a";
+  ctx.font = "bold 15px Arial";
   ctx.fillText("ASHLANDS", 402, 32);
   ctx.textAlign = "left";
 }
