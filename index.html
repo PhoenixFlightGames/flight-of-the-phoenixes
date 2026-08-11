@@ -84,9 +84,7 @@ let checkpoint=0,checkpointFlash=0;
 let revivedThisRun=false,reviveSafety=0;
 let rebirthTimer=0,rebirthParticles=[];
 let stormShield=false,shieldFlash=0;
-
-let zoneFlash=0;
-let activeZone="EMBER CAVERNS";
+let zoneFlash=0,activeZone="EMBER CAVERNS";
 
 let best=Number(localStorage.getItem("phoenixBest"))||0;
 let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
@@ -360,7 +358,7 @@ if(playing)holding=true;
 window.addEventListener("mouseup",()=>holding=false);
 
 function addRock(start=660){
-const gap=220-level*8;
+const gap=Math.max(150,220-level*7);
 const min=gap/2+45;
 const max=H-gap/2-45;
 const middle=min+Math.random()*(max-min);
@@ -436,7 +434,6 @@ if(totalShards<REVIVE_COST)return;
 
 totalShards-=REVIVE_COST;
 revivedThisRun=true;
-
 distance=checkpoint;
 
 bird={
@@ -490,7 +487,9 @@ lastTime=now;
 
 seconds+=dt;
 distance+=52*dt;
-level=Math.min(3,Math.floor(distance/500));
+
+/* Difficulty now continues through Level 10 */
+level=Math.min(10,Math.floor(distance/500));
 
 const newZone=currentZone().name;
 
@@ -567,7 +566,8 @@ rocks[rocks.length-1].x<340
 addRock();
 }
 
-const speed=155+level*10;
+/* Speed now rises to a maximum of 265 */
+const speed=Math.min(265,155+level*11);
 
 for(const rock of rocks){
 rock.x-=speed*dt;
@@ -582,7 +582,6 @@ const shardDistance=Math.hypot(dx,dy);
 
 if(shardDistance<MAGNET_RANGE){
 const pull=(1-shardDistance/MAGNET_RANGE)*MAGNET_PULL;
-
 rock.shardX+=dx*pull*dt;
 rock.shardY+=dy*pull*dt;
 }
