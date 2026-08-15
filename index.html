@@ -207,7 +207,7 @@ left:48px;
 top:20px;
 width:100px;
 height:100px;
-background-image:var(--phoenix-image);
+background-image:var(--ember-phoenix-image);
 background-size:contain;
 background-position:center;
 background-repeat:no-repeat;
@@ -457,1753 +457,1624 @@ Your best 10 completed flights on this device.
 </div>
 
 <script>
-const c=document.getElementById("game");
-const x=c.getContext("2d");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d", { alpha: false });
 
-const W=420;
-const H=760;
+const W = 420;
+const H = 760;
 
-const CHECKPOINT_DISTANCE=1000;
-const REVIVE_COST=15;
-const MAGNET_RANGE=80;
-const LEADERBOARD_LIMIT=10;
+canvas.width = W;
+canvas.height = H;
 
-const menu=document.getElementById("menu");
-const roost=document.getElementById("roost");
-const leaderboardScreen=document.getElementById("leaderboardScreen");
-const leaderboardList=document.getElementById("leaderboardList");
+const menu = document.getElementById("menu");
+const roost = document.getElementById("roost");
+const reviveScreen = document.getElementById("reviveScreen");
+const tutorialScreen = document.getElementById("tutorialScreen");
+const leaderboardScreen = document.getElementById("leaderboardScreen");
 
-const reviveScreen=document.getElementById("reviveScreen");
-const reviveText=document.getElementById("reviveText");
-const bestText=document.getElementById("bestText");
-const roostShards=document.getElementById("roostShards");
-const phoenixList=document.getElementById("phoenixList");
-const abilityButton=document.getElementById("abilityButton");
+const abilityButton = document.getElementById("abilityButton");
+const gameTip = document.getElementById("gameTip");
 
-const tutorialScreen=document.getElementById("tutorialScreen");
-const tutorialStep=document.getElementById("tutorialStep");
-const tutorialTitle=document.getElementById("tutorialTitle");
-const tutorialArt=document.getElementById("tutorialArt");
-const tutorialText=document.getElementById("tutorialText");
-const tutorialNext=document.getElementById("tutorialNext");
+const STORAGE_KEY = "flightOfPhoenixesSaveV2";
+const LEADERBOARD_KEY = "flightOfPhoenixesLeaderboardV1";
 
-const gameTip=document.getElementById("gameTip");
+const imageSources = {
+  ember: {
+    top: ["IMG_3885.jpeg", "IMG_3886.png"],
+    bottom: ["IMG_3887.png", "IMG_3888.png"]
+  },
 
-const P={
-ember:{
-name:"Ember Phoenix",
-sub:"Starter Phoenix — orange flame",
-color:"#ff8a35",
-shadow:"#ff542f",
-cost:0,
-filter:""
-},
+  azure: {
+    top: ["IMG_3889.png", "IMG_3890.png"],
+    bottom: ["IMG_3891.png", "IMG_3892.png"]
+  },
 
-azure:{
-name:"Azure Phoenix",
-sub:"Stormborn feathers and a checkpoint Storm Shield",
-color:"#67e7ff",
-shadow:"#36dfff",
-cost:25,
-filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"
-},
+  verdant: {
+    top: ["IMG_3895.png", "IMG_3896.png"],
+    bottom: ["IMG_3897.png", "IMG_3898.png"]
+  },
 
-verdant:{
-name:"Verdant Phoenix",
-sub:"Wildfire plumage and Ember Magnet",
-color:"#62f58c",
-shadow:"#56f58a",
-cost:50,
-filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
-},
-
-violet:{
-name:"Violet Phoenix",
-sub:"Arcane flame and player-triggered Arcane Pulse",
-color:"#c879ff",
-shadow:"#9e4bff",
-cost:100,
-filter:"hue-rotate(230deg) saturate(2.1) brightness(1.2)"
-},
-
-solar:{
-name:"Solar Phoenix",
-sub:"Sunfire wings and player-triggered Sunfire Grace",
-color:"#ffd15c",
-shadow:"#ff9b2f",
-cost:175,
-filter:"hue-rotate(25deg) saturate(2.1) brightness(1.35)"
-}
+  phoenixes: {
+    ember: "IMG_3899.png",
+    azure: "IMG_3902.png",
+    verdant: "IMG_3903.png",
+    violet: "IMG_3904.png",
+    solar: "IMG_3905.png"
+  }
 };
 
-let playing=false;
-let holding=false;
+const phoenixes = [
+  {
+    id: "ember",
+    name: "Ember Phoenix",
+    price: 0,
+    color: "#ff5936",
+    glow: "#ff922b",
+    ability: "Flame Shield",
+    abilityDescription: "Blocks one collision for 3 seconds.",
+    abilityLabel: "FLAME\nSHIELD",
+    duration: 180
+  },
 
-let bird;
-let rocks=[];
-let embers=[];
-let trails=[];
-let gate=null;
+  {
+    id: "azure",
+    name: "Azure Phoenix",
+    price: 60,
+    color: "#4bdcff",
+    glow: "#75f2ff",
+    ability: "Sky Surge",
+    abilityDescription: "Briefly slows the world for 4 seconds.",
+    abilityLabel: "SKY\nSURGE",
+    duration: 240
+  },
 
-let distance=0;
-let seconds=0;
-let level=0;
-let runShards=0;
-let lastTime=0;
+  {
+    id: "verdant",
+    name: "Verdant Phoenix",
+    price: 120,
+    color: "#5ee984",
+    glow: "#adff81",
+    ability: "Wildwind",
+    abilityDescription: "Pushes nearby obstacles away for 3 seconds.",
+    abilityLabel: "WILD\nWIND",
+    duration: 180
+  },
 
-let checkpoint=0;
-let checkpointFlash=0;
+  {
+    id: "violet",
+    name: "Violet Phoenix",
+    price: 200,
+    color: "#c675ff",
+    glow: "#f0a9ff",
+    ability: "Star Veil",
+    abilityDescription: "Makes the Phoenix invulnerable for 3 seconds.",
+    abilityLabel: "STAR\nVEIL",
+    duration: 180
+  },
 
-let revivedThisRun=false;
-let reviveSafety=0;
-
-let stormShield=false;
-let arcanePulse=false;
-let sunfireGrace=false;
-let sunfireActive=false;
-
-let tutorialPage=0;
-let tutorialRunning=false;
-let tutorialShardSeen=false;
-let tutorialGateSeen=false;
-
-let tipTimer=0;
-
-let best=Number(localStorage.getItem("phoenixBest"))||0;
-let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
-
-let highestCheckpoint=Number(
-localStorage.getItem("phoenixHighestCheckpoint")
-)||0;
-
-let azureUnlocked=localStorage.getItem("azureUnlocked")==="true";
-let verdantUnlocked=localStorage.getItem("verdantUnlocked")==="true";
-let violetUnlocked=localStorage.getItem("violetUnlocked")==="true";
-let solarUnlocked=localStorage.getItem("solarUnlocked")==="true";
-
-let equippedPhoenix=localStorage.getItem("equippedPhoenix")||"ember";
-
-let leaderboard=[];
-
-try{
-leaderboard=JSON.parse(
-localStorage.getItem("phoenixLeaderboard")
-)||[];
-}catch(error){
-leaderboard=[];
-}
-
-if(!Array.isArray(leaderboard)){
-leaderboard=[];
-}
-
-function unlocked(key){
-return key==="ember"||
-(key==="azure"&&azureUnlocked)||
-(key==="verdant"&&verdantUnlocked)||
-(key==="violet"&&violetUnlocked)||
-(key==="solar"&&solarUnlocked);
-}
-
-if(!unlocked(equippedPhoenix)){
-equippedPhoenix="ember";
-}
-
-const img=new Image();
-let sprite=null;
-
-img.onload=function(){
-const s=document.createElement("canvas");
-const q=s.getContext("2d");
-
-s.width=img.naturalWidth;
-s.height=img.naturalHeight;
-
-q.drawImage(img,0,0);
-
-const d=q.getImageData(0,0,s.width,s.height);
-
-for(let i=0;i<d.data.length;i+=4){
-const r=d.data[i];
-const g=d.data[i+1];
-const b=d.data[i+2];
-
-if(
-r>215&&
-g>215&&
-b>215&&
-Math.max(r,g,b)-Math.min(r,g,b)<28
-){
-d.data[i+3]=0;
-}
-}
-
-q.putImageData(d,0,0);
-
-sprite=s;
-
-document.documentElement.style.setProperty(
-"--phoenix-image",
-`url("${s.toDataURL("image/png")}")`
-);
-};
-
-img.src="IMG_3821.jpeg";
-
-function save(){
-localStorage.setItem("phoenixBest",best);
-localStorage.setItem("phoenixShards",totalShards);
-
-localStorage.setItem(
-"phoenixHighestCheckpoint",
-highestCheckpoint
-);
-
-localStorage.setItem("azureUnlocked",azureUnlocked);
-localStorage.setItem("verdantUnlocked",verdantUnlocked);
-localStorage.setItem("violetUnlocked",violetUnlocked);
-localStorage.setItem("solarUnlocked",solarUnlocked);
-
-localStorage.setItem("equippedPhoenix",equippedPhoenix);
-
-localStorage.setItem(
-"phoenixLeaderboard",
-JSON.stringify(leaderboard)
-);
-}
-
-function updateMenuText(){
-bestText.innerHTML=`
-Best: ${best.toLocaleString()} m<br>
-Highest checkpoint: ${
-highestCheckpoint
-?highestCheckpoint.toLocaleString()+" m"
-:"Not reached"
-}
-`;
-}
-
-function showTip(message,time=4){
-gameTip.innerHTML=message;
-gameTip.classList.remove("hidden");
-
-tipTimer=time;
-}
-
-function formatScoreDate(dateString){
-const date=new Date(dateString);
-
-return date.toLocaleDateString(
-undefined,
-{
-month:"short",
-day:"numeric",
-year:"numeric"
-}
-);
-}
-
-function addLeaderboardEntry(){
-const finalDistance=Math.floor(distance);
-
-if(finalDistance<=0)return;
-
-const entry={
-distance:finalDistance,
-checkpoint:checkpoint,
-shards:runShards,
-phoenix:equippedPhoenix,
-date:new Date().toISOString()
-};
-
-leaderboard.push(entry);
-
-leaderboard.sort((a,b)=>{
-if(b.distance!==a.distance){
-return b.distance-a.distance;
-}
-
-if(b.checkpoint!==a.checkpoint){
-return b.checkpoint-a.checkpoint;
-}
-
-return b.shards-a.shards;
-});
-
-leaderboard=leaderboard.slice(0,LEADERBOARD_LIMIT);
-}
-
-function openLeaderboard(){
-renderLeaderboard();
-
-menu.classList.add("hidden");
-leaderboardScreen.classList.remove("hidden");
-}
-
-function closeLeaderboard(){
-leaderboardScreen.classList.add("hidden");
-menu.classList.remove("hidden");
-}
-
-function renderLeaderboard(){
-if(!leaderboard.length){
-leaderboardList.innerHTML=`
-<div class="leaderboard-empty">
-No completed flights yet.<br><br>
-Take flight and your best runs will appear here.
-</div>
-`;
-
-return;
-}
-
-leaderboardList.innerHTML=leaderboard.map((entry,index)=>{
-const phoenix=P[entry.phoenix]||P.ember;
-
-const checkpointText=
-entry.checkpoint>0
-?entry.checkpoint.toLocaleString()+" m checkpoint"
-:"No checkpoint";
-
-return `
-<div class="leaderboard-row ${index===0?"first":""}">
-<div class="leaderboard-rank">
-${index+1}
-</div>
-
-<div>
-<div class="leaderboard-distance">
-${entry.distance.toLocaleString()} m
-</div>
-
-<div class="leaderboard-detail">
-${checkpointText} · ${entry.shards} Shard${entry.shards===1?"":"s"}<br>
-${formatScoreDate(entry.date)}
-</div>
-</div>
-
-<div
-class="leaderboard-phoenix"
-style="color:${phoenix.color}"
->
-${phoenix.name.replace(" Phoenix","")}
-</div>
-</div>
-`;
-}).join("");
-}
-
-function openTutorial(){
-tutorialPage=0;
-
-tutorialScreen.classList.remove("hidden");
-
-renderTutorial();
-}
-
-function renderTutorial(){
-const pages=[
-{
-title:"FLY YOUR PHOENIX",
-text:"Press and hold anywhere on the screen to make your Phoenix rise.",
-art:`
-<div class="tutorial-bird"></div>
-<div class="tutorial-finger">HOLD</div>
-`
-},
-{
-title:"GLIDE THROUGH DANGER",
-text:"Release your hold to glide downward. Stay inside the opening between volcanic rock.",
-art:`
-<div class="tutorial-bird"></div>
-<div class="tutorial-finger glide">RELEASE</div>
-`
-},
-{
-title:"COLLECT EMBER SHARDS",
-text:"Fly through glowing Ember Shards. Spend saved Shards in the Phoenix Roost.",
-art:`
-<div class="tutorial-bird"></div>
-<div class="tutorial-shard"></div>
-`
-},
-{
-title:"REACH CHECKPOINTS",
-text:"Pass through a Phoenix Gate every 1,000 meters. Checkpoints grant a Shard and one revive.",
-art:`
-<div class="tutorial-bird"></div>
-<div class="tutorial-gate"></div>
-`
-},
-{
-title:"UNLEASH YOUR POWER",
-text:"Some Phoenixes charge a special ability at checkpoints. Tap the round ability button to use it.",
-art:`
-<div class="tutorial-bird"></div>
-<div class="tutorial-ability">ARCANE<br>PULSE</div>
-`
-}
+  {
+    id: "solar",
+    name: "Solar Phoenix",
+    price: 320,
+    color: "#ffd35d",
+    glow: "#fff1a6",
+    ability: "Solar Dash",
+    abilityDescription: "Launches forward and earns bonus shards.",
+    abilityLabel: "SOLAR\nDASH",
+    duration: 80
+  }
 ];
 
-const page=pages[tutorialPage];
+let saveData = loadSave();
+let leaderboardData = loadLeaderboard();
 
-tutorialStep.textContent=
-"HOW TO PLAY · "+(tutorialPage+1)+" OF 5";
+let loadedImages = {};
+let imagesReady = false;
 
-tutorialTitle.textContent=page.title;
-tutorialText.textContent=page.text;
-tutorialArt.innerHTML=page.art;
+let gameRunning = false;
+let pausedForRevive = false;
+let animationFrame = null;
 
-tutorialNext.textContent=
-tutorialPage===4
-?"Start Practice Flight"
-:"Next";
+let player;
+let obstacles = [];
+let particles = [];
+let stars = [];
+let trails = [];
+
+let distance = 0;
+let shardsEarned = 0;
+let checkpointDistance = 0;
+let worldSpeed = 3.2;
+let spawnTimer = 0;
+let invincibleFrames = 0;
+let shieldFrames = 0;
+let slowFrames = 0;
+let windFrames = 0;
+let dashFrames = 0;
+let abilityCooldown = 0;
+let usedRevive = false;
+let currentZone = "ember";
+let newBestThisRun = false;
+
+let holding = false;
+let tutorialIndex = 0;
+
+function loadSave() {
+  const defaults = {
+    shards: 0,
+    bestDistance: 0,
+    owned: ["ember"],
+    equipped: "ember",
+    tutorialSeen: false
+  };
+
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+    if (!stored) return defaults;
+
+    return {
+      shards: Number(stored.shards || 0),
+      bestDistance: Number(stored.bestDistance || 0),
+      owned: Array.isArray(stored.owned) && stored.owned.length
+        ? stored.owned
+        : ["ember"],
+      equipped: stored.equipped || "ember",
+      tutorialSeen: Boolean(stored.tutorialSeen)
+    };
+  } catch {
+    return defaults;
+  }
 }
 
-function nextTutorialStep(){
-tutorialPage++;
-
-if(tutorialPage>=5){
-localStorage.setItem(
-"phoenixTutorialComplete",
-"true"
-);
-
-tutorialRunning=true;
-tutorialShardSeen=false;
-tutorialGateSeen=false;
-
-tutorialScreen.classList.add("hidden");
-
-startGame(true);
-
-return;
+function saveGame() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 }
 
-renderTutorial();
+function loadLeaderboard() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(LEADERBOARD_KEY));
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
 }
 
-function skipTutorial(){
-localStorage.setItem(
-"phoenixTutorialComplete",
-"true"
-);
-
-tutorialScreen.classList.add("hidden");
+function saveLeaderboard() {
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboardData));
 }
 
-function dot(color){
-return `
-<span
-class="preview"
-style="background:${color};box-shadow:0 0 12px ${color}"
-></span>
-`;
+function getPhoenix(id) {
+  return phoenixes.find(phoenix => phoenix.id === id) || phoenixes[0];
 }
 
-function openRoost(){
-renderRoost();
-
-menu.classList.add("hidden");
-roost.classList.remove("hidden");
+function getZoneForDistance(meters) {
+  if (meters < 2000) return "ember";
+  if (meters < 4000) return "azure";
+  return "verdant";
 }
 
-function closeRoost(){
-roost.classList.add("hidden");
-menu.classList.remove("hidden");
+function zoneData(zone) {
+  if (zone === "azure") {
+    return {
+      name: "AZURE PEAKS",
+      skyTop: "#163c6c",
+      skyBottom: "#091526",
+      mist: "#67d9ff",
+      ground: "#153453",
+      accent: "#8df1ff"
+    };
+  }
+
+  if (zone === "verdant") {
+    return {
+      name: "VERDANT WILDS",
+      skyTop: "#17452d",
+      skyBottom: "#071b15",
+      mist: "#70f0a0",
+      ground: "#17442f",
+      accent: "#b7ff7b"
+    };
+  }
+
+  return {
+    name: "EMBER CAVERNS",
+    skyTop: "#5b1f26",
+    skyBottom: "#120d19",
+    mist: "#ff7b47",
+    ground: "#45202a",
+    accent: "#ffc15a"
+  };
 }
 
-function renderRoost(){
-roostShards.textContent=
-"Ember Shards: "+totalShards;
+function loadImage(src) {
+  return new Promise(resolve => {
+    const image = new Image();
 
-phoenixList.innerHTML=Object.keys(P).map(key=>{
-const phoenix=P[key];
-const active=equippedPhoenix===key;
+    image.onload = () => {
+      resolve(makeWhiteTransparent(image));
+    };
 
-if(!unlocked(key)){
-return `
-<div class="card">
-<strong style="color:${phoenix.color}">
-${dot(phoenix.color)}${phoenix.name}
-</strong><br>
+    image.onerror = () => {
+      console.warn("Could not load image:", src);
+      resolve(null);
+    };
 
-${phoenix.sub}
-
-<button onclick="unlockPhoenix('${key}')">
-Unlock for ${phoenix.cost} Shards
-</button>
-</div>
-`;
+    image.src = src;
+  });
 }
 
-return `
-<div class="card ${active?"equipped":""}">
-<strong style="color:${phoenix.color}">
-${dot(phoenix.color)}${phoenix.name}
-</strong><br>
+function makeWhiteTransparent(image) {
+  const offscreen = document.createElement("canvas");
+  const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
 
-${phoenix.sub}<br>
-${active?"Equipped":"Unlocked"}
+  offscreen.width = image.naturalWidth || image.width;
+  offscreen.height = image.naturalHeight || image.height;
 
-${active?"":`
-<button onclick="equipPhoenix('${key}')">
-Equip ${phoenix.name}
-</button>
-`}
-</div>
-`;
-}).join("");
+  offCtx.drawImage(image, 0, 0);
+
+  const imageData = offCtx.getImageData(
+    0,
+    0,
+    offscreen.width,
+    offscreen.height
+  );
+
+  const pixels = imageData.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const red = pixels[i];
+    const green = pixels[i + 1];
+    const blue = pixels[i + 2];
+    const alpha = pixels[i + 3];
+
+    const brightness = (red + green + blue) / 3;
+    const colorDifference =
+      Math.max(red, green, blue) - Math.min(red, green, blue);
+
+    const nearlyWhite =
+      brightness > 232 &&
+      colorDifference < 32;
+
+    const softWhite =
+      brightness > 215 &&
+      red > 200 &&
+      green > 200 &&
+      blue > 200 &&
+      colorDifference < 22;
+
+    if (alpha > 0 && (nearlyWhite || softWhite)) {
+      pixels[i + 3] = 0;
+    }
+  }
+
+  offCtx.putImageData(imageData, 0, 0);
+
+  return offscreen;
 }
 
-function unlockPhoenix(key){
-const phoenix=P[key];
+async function loadAllImages() {
+  const entries = [];
 
-if(totalShards<phoenix.cost){
-alert("You need "+phoenix.cost+" Ember Shards.");
-return;
+  for (const zone of ["ember", "azure", "verdant"]) {
+    for (const side of ["top", "bottom"]) {
+      for (const source of imageSources[zone][side]) {
+        entries.push([source, source]);
+      }
+    }
+  }
+
+  for (const source of Object.values(imageSources.phoenixes)) {
+    entries.push([source, source]);
+  }
+
+  const loaded = await Promise.all(
+    entries.map(async ([key, source]) => [key, await loadImage(source)])
+  );
+
+  loaded.forEach(([key, image]) => {
+    loadedImages[key] = image;
+  });
+
+  imagesReady = true;
+  updateMenuText();
+
+  document.documentElement.style.setProperty(
+    "--ember-phoenix-image",
+    `url("${imageSources.phoenixes.ember}")`
+  );
 }
 
-totalShards-=phoenix.cost;
-
-if(key==="azure")azureUnlocked=true;
-if(key==="verdant")verdantUnlocked=true;
-if(key==="violet")violetUnlocked=true;
-if(key==="solar")solarUnlocked=true;
-
-equippedPhoenix=key;
-
-save();
-renderRoost();
+function randomFrom(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
-function equipPhoenix(key){
-if(!unlocked(key))return;
+function makeStars() {
+  stars = [];
 
-equippedPhoenix=key;
-
-save();
-renderRoost();
+  for (let i = 0; i < 85; i++) {
+    stars.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      size: Math.random() * 2 + 0.5,
+      speed: Math.random() * 0.65 + 0.15,
+      alpha: Math.random() * 0.65 + 0.2
+    });
+  }
 }
 
-function makeEmbers(){
-return Array.from({length:42},()=>({
-x:Math.random()*W,
-y:Math.random()*H,
-size:1+Math.random()*2.5,
-speed:14+Math.random()*32,
-drift:Math.random()*7
-}));
-}
-function updateAbilityButton(){
-abilityButton.classList.add("hidden");
-abilityButton.classList.remove("solar");
+function setupPlayer() {
+  const phoenix = getPhoenix(saveData.equipped);
 
-if(!playing)return;
-
-if(equippedPhoenix==="violet"&&arcanePulse){
-abilityButton.textContent="ARCANE\nPULSE";
-abilityButton.classList.remove("hidden");
+  player = {
+    x: 112,
+    y: H * 0.48,
+    width: 72,
+    height: 72,
+    velocityY: 0,
+    rotation: 0,
+    phoenix
+  };
 }
 
-if(equippedPhoenix==="solar"&&sunfireGrace){
-abilityButton.textContent="SUNFIRE\nGRACE";
-abilityButton.classList.add("solar");
-abilityButton.classList.remove("hidden");
-}
+function resetRun() {
+  setupPlayer();
+  obstacles = [];
+  particles = [];
+  trails = [];
+  distance = 0;
+  shardsEarned = 0;
+  checkpointDistance = 0;
+  worldSpeed = 3.2;
+  spawnTimer = 90;
+  invincibleFrames = 0;
+  shieldFrames = 0;
+  slowFrames = 0;
+  windFrames = 0;
+  dashFrames = 0;
+  abilityCooldown = 0;
+  usedRevive = false;
+  currentZone = "ember";
+  newBestThisRun = false;
+
+  makeStars();
 }
 
-function useAbility(){
-if(!playing)return;
+function updateMenuText() {
+  const imageMessage = imagesReady
+    ? ""
+    : " Loading artwork…";
 
-if(equippedPhoenix==="violet"&&arcanePulse){
-const target=rocks.find(rock=>{
-return rock.x+rock.width>bird.x;
+  document.getElementById("bestText").innerHTML =
+    `Best flight: <strong>${Math.floor(saveData.bestDistance)} m</strong><br>` +
+    `Ember Shards: <strong>${saveData.shards}</strong>${imageMessage}`;
+}
+
+function showGameTip(html, duration = 3000) {
+  gameTip.innerHTML = html;
+  gameTip.classList.remove("hidden");
+
+  clearTimeout(showGameTip.timeout);
+
+  showGameTip.timeout = setTimeout(() => {
+    gameTip.classList.add("hidden");
+  }, duration);
+}
+
+function hideGameTip() {
+  clearTimeout(showGameTip.timeout);
+  gameTip.classList.add("hidden");
+}
+
+function startGame() {
+  if (!imagesReady) {
+    showGameTip("Artwork is still loading. Please wait a moment.");
+    return;
+  }
+
+  menu.classList.add("hidden");
+  roost.classList.add("hidden");
+  reviveScreen.classList.add("hidden");
+  leaderboardScreen.classList.add("hidden");
+
+  resetRun();
+  gameRunning = true;
+  pausedForRevive = false;
+
+  abilityButton.textContent = getPhoenix(saveData.equipped).abilityLabel;
+  abilityButton.className = "ability-button";
+
+  if (saveData.equipped === "solar") {
+    abilityButton.classList.add("solar");
+  }
+
+  abilityButton.classList.remove("hidden");
+
+  if (!saveData.tutorialSeen) {
+    openTutorial(true);
+  } else {
+    showGameTip(
+      "Hold anywhere to <strong>rise</strong>.<br>Release to <strong>glide</strong>."
+    );
+  }
+
+  cancelAnimationFrame(animationFrame);
+  gameLoop();
+}
+
+function stopGame() {
+  gameRunning = false;
+  pausedForRevive = false;
+  holding = false;
+
+  abilityButton.classList.add("hidden");
+  hideGameTip();
+
+  cancelAnimationFrame(animationFrame);
+}
+
+function gameLoop() {
+  updateGame();
+  drawGame();
+
+  if (gameRunning) {
+    animationFrame = requestAnimationFrame(gameLoop);
+  }
+}
+
+function updateGame() {
+  if (!gameRunning || pausedForRevive) return;
+
+  currentZone = getZoneForDistance(distance);
+
+  const speedMultiplier = slowFrames > 0 ? 0.52 : 1;
+  const activeSpeed = worldSpeed * speedMultiplier;
+
+  if (holding) {
+    player.velocityY -= 0.48;
+  } else {
+    player.velocityY += 0.34;
+  }
+
+  player.velocityY = Math.max(-7.6, Math.min(8.6, player.velocityY));
+
+  if (dashFrames > 0) {
+    player.velocityY *= 0.89;
+    player.x = 130;
+    dashFrames--;
+  } else {
+    player.x += (112 - player.x) * 0.12;
+  }
+
+  player.y += player.velocityY;
+  player.rotation = Math.max(
+    -0.48,
+    Math.min(0.78, player.velocityY * 0.055)
+  );
+
+  if (player.y < 15) {
+    player.y = 15;
+    player.velocityY = 0;
+  }
+
+  if (player.y > H - 96) {
+    crash();
+  }
+
+  distance += activeSpeed * 0.36;
+
+  if (distance > saveData.bestDistance) {
+    saveData.bestDistance = distance;
+    newBestThisRun = true;
+  }
+
+  const newCheckpoint = Math.floor(distance / 1000) * 1000;
+
+  if (newCheckpoint > checkpointDistance) {
+    checkpointDistance = newCheckpoint;
+    addParticles(W * 0.5, H * 0.48, "#ffd15c", 34, 4.8);
+    showGameTip(
+      `<strong>CHECKPOINT:</strong> ${checkpointDistance.toLocaleString()} m`,
+      2100
+    );
+  }
+
+  worldSpeed = Math.min(6.8, 3.2 + distance / 3000);
+
+  spawnTimer--;
+
+  if (spawnTimer <= 0) {
+    spawnObstacle();
+    spawnTimer = Math.max(74, 116 - Math.floor(distance / 180));
+  }
+
+  updateStars(activeSpeed);
+  updateObstacles(activeSpeed);
+  updateParticles();
+  updateTrails();
+
+  if (invincibleFrames > 0) invincibleFrames--;
+  if (shieldFrames > 0) shieldFrames--;
+  if (slowFrames > 0) slowFrames--;
+  if (windFrames > 0) windFrames--;
+  if (abilityCooldown > 0) abilityCooldown--;
+
+  updateAbilityButton();
+}
+
+function updateStars(speed) {
+  for (const star of stars) {
+    star.x -= star.speed * speed * 0.28;
+
+    if (star.x < -4) {
+      star.x = W + 4;
+      star.y = Math.random() * H;
+    }
+  }
+}
+
+function updateTrails() {
+  trails.push({
+    x: player.x - 22,
+    y: player.y + 35,
+    size: Math.random() * 8 + 7,
+    color: player.phoenix.glow,
+    life: 20
+  });
+
+  if (trails.length > 45) trails.shift();
+
+  for (const trail of trails) {
+    trail.x -= 1.25;
+    trail.y += (Math.random() - 0.5) * 0.8;
+    trail.life--;
+  }
+
+  trails = trails.filter(trail => trail.life > 0);
+}
+
+function updateParticles() {
+  for (const particle of particles) {
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    particle.vy += particle.gravity;
+    particle.life--;
+    particle.size *= 0.985;
+  }
+
+  particles = particles.filter(particle => particle.life > 0);
+}
+
+function addParticles(x, y, color, amount = 12, force = 2.5) {
+  for (let i = 0; i < amount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const power = Math.random() * force;
+
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * power,
+      vy: Math.sin(angle) * power,
+      gravity: 0.03,
+      size: Math.random() * 5 + 2,
+      color,
+      life: Math.random() * 30 + 22
+    });
+  }
+}
+
+function spawnObstacle() {
+  const zone = currentZone;
+  const topSource = randomFrom(imageSources[zone].top);
+  const bottomSource = randomFrom(imageSources[zone].bottom);
+
+  const gapBase = Math.max(186, 245 - distance / 90);
+  const gap = gapBase + Math.random() * 28;
+  const topHeight = 86 + Math.random() * (H - 260 - gap);
+
+  obstacles.push({
+    x: W + 30,
+    width: 104,
+    topHeight,
+    bottomY: topHeight + gap,
+    topImage: loadedImages[topSource],
+    bottomImage: loadedImages[bottomSource],
+    zone,
+    shardTaken: false,
+    passed: false,
+    pushed: false
+  });
+}
+
+function updateObstacles(speed) {
+  for (const obstacle of obstacles) {
+    let obstacleSpeed = speed;
+
+    if (windFrames > 0) {
+      obstacleSpeed *= 1.75;
+      obstacle.pushed = true;
+    }
+
+    obstacle.x -= obstacleSpeed;
+
+    const shardX = obstacle.x + obstacle.width * 0.5;
+    const shardY = (obstacle.topHeight + obstacle.bottomY) * 0.5;
+
+    if (!obstacle.shardTaken) {
+      const dx = player.x + player.width * 0.5 - shardX;
+      const dy = player.y + player.height * 0.5 - shardY;
+
+      if (Math.hypot(dx, dy) < 48) {
+        obstacle.shardTaken = true;
+        shardsEarned += 1;
+        addParticles(shardX, shardY, "#ffd15c", 15, 3.2);
+      }
+    }
+
+    if (!obstacle.passed && obstacle.x + obstacle.width < player.x) {
+      obstacle.passed = true;
+      shardsEarned += 1;
+      addParticles(
+        player.x,
+        player.y + 35,
+        player.phoenix.glow,
+        8,
+        1.8
+      );
+    }
+
+    if (
+      invincibleFrames <= 0 &&
+      checkObstacleCollision(obstacle)
+    ) {
+      if (shieldFrames > 0) {
+        shieldFrames = 0;
+        invincibleFrames = 42;
+        obstacle.x -= 25;
+        addParticles(
+          player.x + 30,
+          player.y + 30,
+          "#ffd15c",
+          32,
+          4.8
+        );
+        showGameTip("<strong>Flame Shield</strong> saved you!", 1500);
+      } else {
+        crash();
+      }
+    }
+  }
+
+  obstacles = obstacles.filter(obstacle => obstacle.x > -150);
+}
+
+function checkObstacleCollision(obstacle) {
+  const px = player.x + 15;
+  const py = player.y + 15;
+  const pw = player.width - 30;
+  const ph = player.height - 26;
+
+  const obstacleLeft = obstacle.x + 13;
+  const obstacleRight = obstacle.x + obstacle.width - 13;
+
+  const hitTop =
+    px + pw > obstacleLeft &&
+    px < obstacleRight &&
+    py < obstacle.topHeight - 4;
+
+  const hitBottom =
+    px + pw > obstacleLeft &&
+    px < obstacleRight &&
+    py + ph > obstacle.bottomY + 4;
+
+  return hitTop || hitBottom;
+}
+function drawGame() {
+  drawBackground();
+  drawStars();
+  drawZoneScenery();
+  drawObstacles();
+  drawTrails();
+  drawPlayer();
+  drawParticles();
+  drawHud();
+}
+
+function drawBackground() {
+  const zone = zoneData(currentZone);
+
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, zone.skyTop);
+  sky.addColorStop(0.58, zone.skyBottom);
+  sky.addColorStop(1, "#050711");
+
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  const glow = ctx.createRadialGradient(
+    W * 0.68,
+    H * 0.27,
+    5,
+    W * 0.68,
+    H * 0.27,
+    270
+  );
+
+  glow.addColorStop(0, hexToRgba(zone.accent, 0.22));
+  glow.addColorStop(0.5, hexToRgba(zone.mist, 0.06));
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  const bottomGlow = ctx.createLinearGradient(0, H * 0.72, 0, H);
+  bottomGlow.addColorStop(0, "rgba(0,0,0,0)");
+  bottomGlow.addColorStop(1, hexToRgba(zone.ground, 0.8));
+
+  ctx.fillStyle = bottomGlow;
+  ctx.fillRect(0, H * 0.72, W, H * 0.28);
+}
+
+function drawStars() {
+  for (const star of stars) {
+    ctx.save();
+    ctx.globalAlpha = star.alpha;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawZoneScenery() {
+  const zone = zoneData(currentZone);
+
+  ctx.save();
+
+  for (let i = 0; i < 7; i++) {
+    const x = ((i * 89 - distance * 0.16) % (W + 130)) - 60;
+    const height = 55 + ((i * 29) % 100);
+
+    ctx.globalAlpha = 0.14;
+    ctx.fillStyle = zone.mist;
+
+    ctx.beginPath();
+    ctx.moveTo(x, H - 76);
+    ctx.lineTo(x + 34, H - 76 - height);
+    ctx.lineTo(x + 74, H - 76);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 0.32;
+  ctx.fillStyle = zone.ground;
+  ctx.fillRect(0, H - 64, W, 64);
+
+  ctx.globalAlpha = 0.66;
+  ctx.strokeStyle = zone.accent;
+  ctx.lineWidth = 2;
+
+  for (let i = 0; i < 6; i++) {
+    const x = ((i * 104 - distance * 0.42) % (W + 80)) - 30;
+
+    ctx.beginPath();
+    ctx.moveTo(x, H - 62);
+    ctx.lineTo(x + 24, H - 78);
+    ctx.lineTo(x + 52, H - 62);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawObstacles() {
+  for (const obstacle of obstacles) {
+    drawObstaclePart(
+      obstacle.topImage,
+      obstacle.x,
+      0,
+      obstacle.width,
+      obstacle.topHeight,
+      true,
+      obstacle.zone
+    );
+
+    drawObstaclePart(
+      obstacle.bottomImage,
+      obstacle.x,
+      obstacle.bottomY,
+      obstacle.width,
+      H - obstacle.bottomY + 30,
+      false,
+      obstacle.zone
+    );
+
+    if (!obstacle.shardTaken) {
+      drawShard(
+        obstacle.x + obstacle.width * 0.5,
+        (obstacle.topHeight + obstacle.bottomY) * 0.5
+      );
+    }
+  }
+}
+
+function drawObstaclePart(image, x, y, width, height, upsideDown, zone) {
+  const data = zoneData(zone);
+
+  ctx.save();
+
+  ctx.shadowColor = data.accent;
+  ctx.shadowBlur = 14;
+
+  if (image) {
+    if (upsideDown) {
+      ctx.translate(x + width / 2, y + height / 2);
+      ctx.scale(1, -1);
+      ctx.drawImage(image, -width / 2, -height / 2, width, height);
+    } else {
+      ctx.drawImage(image, x, y, width, height);
+    }
+  } else {
+    drawFallbackRock(x, y, width, height, upsideDown, zone);
+  }
+
+  ctx.restore();
+}
+
+function drawFallbackRock(x, y, width, height, upsideDown, zone) {
+  const data = zoneData(zone);
+
+  ctx.save();
+
+  if (upsideDown) {
+    ctx.translate(x + width / 2, y + height / 2);
+    ctx.scale(1, -1);
+    x = -width / 2;
+    y = -height / 2;
+  }
+
+  const rock = ctx.createLinearGradient(x, y, x + width, y + height);
+  rock.addColorStop(0, data.accent);
+  rock.addColorStop(0.25, data.ground);
+  rock.addColorStop(1, "#090810");
+
+  ctx.fillStyle = rock;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + width, y);
+  ctx.lineTo(x + width * 0.87, y + height * 0.55);
+  ctx.lineTo(x + width * 0.66, y + height);
+  ctx.lineTo(x + width * 0.37, y + height * 0.82);
+  ctx.lineTo(x, y + height);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawShard(x, y) {
+  ctx.save();
+
+  const pulse = 1 + Math.sin(Date.now() * 0.008 + x) * 0.13;
+
+  ctx.translate(x, y);
+  ctx.rotate(Math.PI / 4);
+  ctx.scale(pulse, pulse);
+
+  ctx.shadowColor = "#ff8e2e";
+  ctx.shadowBlur = 19;
+  ctx.fillStyle = "#ffd15c";
+
+  ctx.fillRect(-10, -10, 20, 20);
+
+  ctx.fillStyle = "#fff5bd";
+  ctx.fillRect(-4, -7, 8, 8);
+
+  ctx.restore();
+}
+
+function drawTrails() {
+  for (const trail of trails) {
+    const alpha = Math.max(0, trail.life / 20);
+
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.42;
+    ctx.fillStyle = trail.color;
+    ctx.shadowColor = trail.color;
+    ctx.shadowBlur = 14;
+
+    ctx.beginPath();
+    ctx.arc(trail.x, trail.y, trail.size * alpha, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function drawPlayer() {
+  if (!player) return;
+
+  const image = loadedImages[imageSources.phoenixes[player.phoenix.id]];
+  const centerX = player.x + player.width / 2;
+  const centerY = player.y + player.height / 2;
+
+  ctx.save();
+
+  ctx.translate(centerX, centerY);
+  ctx.rotate(player.rotation);
+
+  const flashing =
+    invincibleFrames > 0 &&
+    Math.floor(invincibleFrames / 5) % 2 === 0;
+
+  if (flashing) {
+    ctx.globalAlpha = 0.42;
+  }
+
+  ctx.shadowColor = player.phoenix.glow;
+  ctx.shadowBlur = 25;
+
+  if (image) {
+    ctx.drawImage(
+      image,
+      -player.width / 2,
+      -player.height / 2,
+      player.width,
+      player.height
+    );
+  } else {
+    drawFallbackPhoenix(player.phoenix);
+  }
+
+  ctx.restore();
+
+  if (shieldFrames > 0) {
+    ctx.save();
+
+    ctx.strokeStyle = "#ffd15c";
+    ctx.lineWidth = 4;
+    ctx.shadowColor = "#ff8e2e";
+    ctx.shadowBlur = 23;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 46, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  if (invincibleFrames > 0 && shieldFrames <= 0) {
+    ctx.save();
+
+    ctx.strokeStyle = player.phoenix.glow;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.7;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 43, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+function drawFallbackPhoenix(phoenix) {
+  ctx.save();
+
+  ctx.fillStyle = phoenix.color;
+  ctx.beginPath();
+  ctx.moveTo(-34, 4);
+  ctx.quadraticCurveTo(-2, -38, 31, -10);
+  ctx.quadraticCurveTo(46, 2, 22, 18);
+  ctx.quadraticCurveTo(-4, 33, -35, 16);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = phoenix.glow;
+  ctx.beginPath();
+  ctx.moveTo(-20, 14);
+  ctx.lineTo(-46, 30);
+  ctx.lineTo(-24, -3);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(16, -5, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawParticles() {
+  for (const particle of particles) {
+    const alpha = Math.max(0, particle.life / 52);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = particle.color;
+    ctx.shadowColor = particle.color;
+    ctx.shadowBlur = 12;
+
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function drawHud() {
+  if (!gameRunning) return;
+
+  const zone = zoneData(currentZone);
+
+  ctx.save();
+
+  ctx.fillStyle = "rgba(4,7,16,.68)";
+  ctx.fillRect(0, 0, W, 76);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 27px Arial";
+  ctx.textAlign = "left";
+  ctx.fillText(`${Math.floor(distance).toLocaleString()} m`, 18, 35);
+
+  ctx.font = "bold 15px Arial";
+  ctx.fillStyle = "#ffd15c";
+  ctx.fillText(`✦ ${shardsEarned}`, 20, 59);
+
+  ctx.textAlign = "right";
+  ctx.fillStyle = zone.accent;
+  ctx.font = "bold 13px Arial";
+  ctx.fillText(zone.name, W - 17, 26);
+
+  ctx.fillStyle = "#d7e9ff";
+  ctx.font = "13px Arial";
+  ctx.fillText(
+    `Best ${Math.floor(saveData.bestDistance).toLocaleString()} m`,
+    W - 17,
+    51
+  );
+
+  if (abilityCooldown > 0) {
+    ctx.textAlign = "center";
+    ctx.font = "bold 14px Arial";
+    ctx.fillStyle = "#ffffff";
+
+    ctx.fillText(
+      `Ability ready in ${Math.ceil(abilityCooldown / 60)}s`,
+      W / 2,
+      H - 83
+    );
+  }
+
+  ctx.restore();
+}
+
+function hexToRgba(hex, alpha) {
+  const value = hex.replace("#", "");
+
+  const r = parseInt(value.substring(0, 2), 16);
+  const g = parseInt(value.substring(2, 4), 16);
+  const b = parseInt(value.substring(4, 6), 16);
+
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+function useAbility() {
+  if (!gameRunning || pausedForRevive || abilityCooldown > 0) return;
+
+  const phoenix = player.phoenix;
+
+  abilityCooldown = 660;
+
+  if (phoenix.id === "ember") {
+    shieldFrames = phoenix.duration;
+    addParticles(player.x + 38, player.y + 35, "#ffd15c", 34, 4.2);
+    showGameTip("<strong>Flame Shield!</strong><br>One collision is blocked.", 1900);
+  }
+
+  if (phoenix.id === "azure") {
+    slowFrames = phoenix.duration;
+    addParticles(player.x + 38, player.y + 35, "#67e7ff", 30, 3.8);
+    showGameTip("<strong>Sky Surge!</strong><br>The world slows down.", 1900);
+  }
+
+  if (phoenix.id === "verdant") {
+    windFrames = phoenix.duration;
+
+    for (const obstacle of obstacles) {
+      if (obstacle.x > player.x - 40 && obstacle.x < W + 80) {
+        obstacle.x += 80;
+      }
+    }
+
+    addParticles(player.x + 38, player.y + 35, "#8cff9d", 34, 4.4);
+    showGameTip("<strong>Wildwind!</strong><br>Obstacles are blown away.", 1900);
+  }
+
+  if (phoenix.id === "violet") {
+    invincibleFrames = phoenix.duration;
+    addParticles(player.x + 38, player.y + 35, "#d798ff", 34, 4.2);
+    showGameTip("<strong>Star Veil!</strong><br>You are invulnerable.", 1900);
+  }
+
+  if (phoenix.id === "solar") {
+    dashFrames = phoenix.duration;
+    invincibleFrames = phoenix.duration;
+    shardsEarned += 4;
+
+    for (const obstacle of obstacles) {
+      if (obstacle.x > player.x - 40 && obstacle.x < W + 60) {
+        obstacle.x += 116;
+      }
+    }
+
+    addParticles(player.x + 38, player.y + 35, "#ffd15c", 42, 5);
+    showGameTip("<strong>Solar Dash!</strong><br>+4 Ember Shards", 1900);
+  }
+
+  updateAbilityButton();
+}
+
+function updateAbilityButton() {
+  if (!gameRunning) return;
+
+  const phoenix = player.phoenix;
+
+  abilityButton.textContent =
+    abilityCooldown > 0
+      ? `${Math.ceil(abilityCooldown / 60)}s`
+      : phoenix.abilityLabel;
+
+  abilityButton.style.opacity =
+    abilityCooldown > 0 ? "0.58" : "1";
+
+  abilityButton.style.transform =
+    abilityCooldown > 0 ? "scale(.9)" : "scale(1)";
+}
+
+function crash() {
+  if (!gameRunning || pausedForRevive || invincibleFrames > 0) return;
+
+  holding = false;
+
+  addParticles(
+    player.x + player.width / 2,
+    player.y + player.height / 2,
+    player.phoenix.glow,
+    46,
+    5.4
+  );
+
+  if (!usedRevive && saveData.shards >= 15 && checkpointDistance > 0) {
+    pausedForRevive = true;
+    abilityButton.classList.add("hidden");
+
+    document.getElementById("reviveText").innerHTML =
+      `You reached <strong>${Math.floor(distance).toLocaleString()} m</strong>.<br>` +
+      `Revive at the ${checkpointDistance.toLocaleString()} m checkpoint for 15 Ember Shards?`;
+
+    reviveScreen.classList.remove("hidden");
+    return;
+  }
+
+  endFlight();
+}
+
+function reviveFlight() {
+  if (!pausedForRevive || saveData.shards < 15) {
+    endFlight();
+    return;
+  }
+
+  saveData.shards -= 15;
+  usedRevive = true;
+  distance = checkpointDistance;
+  player.y = H * 0.44;
+  player.velocityY = -1;
+  player.rotation = 0;
+  invincibleFrames = 180;
+  shieldFrames = 0;
+  obstacles = obstacles.filter(obstacle => obstacle.x > player.x + 95);
+
+  if (obstacles.length < 2) {
+    spawnTimer = 48;
+  }
+
+  pausedForRevive = false;
+  reviveScreen.classList.add("hidden");
+  abilityButton.classList.remove("hidden");
+
+  addParticles(player.x + 35, player.y + 35, "#67e7ff", 38, 4.7);
+  showGameTip(
+    `<strong>REVIVED!</strong><br>Checkpoint: ${checkpointDistance.toLocaleString()} m`,
+    2200
+  );
+
+  saveGame();
+  updateMenuText();
+}
+
+function endFlight() {
+  if (!gameRunning && !pausedForRevive) return;
+
+  const finishedDistance = Math.floor(distance);
+  const gainedShards = Math.max(0, Math.floor(shardsEarned));
+
+  saveData.shards += gainedShards;
+  saveData.bestDistance = Math.max(saveData.bestDistance, finishedDistance);
+
+  addLeaderboardEntry(
+    finishedDistance,
+    gainedShards,
+    player ? player.phoenix.id : saveData.equipped
+  );
+
+  saveGame();
+  updateMenuText();
+
+  reviveScreen.classList.add("hidden");
+
+  stopGame();
+
+  menu.classList.remove("hidden");
+
+  document.getElementById("bestText").innerHTML =
+    `Flight: <strong>${finishedDistance.toLocaleString()} m</strong><br>` +
+    `Shards collected: <strong>+${gainedShards}</strong><br>` +
+    `Best flight: <strong>${Math.floor(saveData.bestDistance).toLocaleString()} m</strong><br>` +
+    `Ember Shards: <strong>${saveData.shards}</strong>` +
+    (newBestThisRun
+      ? `<br><span style="color:#ffd15c">New personal best!</span>`
+      : "");
+}
+
+function addLeaderboardEntry(distanceValue, shardValue, phoenixId) {
+  if (distanceValue < 1) return;
+
+  leaderboardData.push({
+    distance: distanceValue,
+    shards: shardValue,
+    phoenix: phoenixId,
+    date: new Date().toLocaleDateString()
+  });
+
+  leaderboardData.sort((a, b) => b.distance - a.distance);
+  leaderboardData = leaderboardData.slice(0, 10);
+
+  saveLeaderboard();
+}
+
+function openRoost() {
+  menu.classList.add("hidden");
+  leaderboardScreen.classList.add("hidden");
+  roost.classList.remove("hidden");
+
+  renderRoost();
+}
+
+function closeRoost() {
+  roost.classList.add("hidden");
+  menu.classList.remove("hidden");
+  updateMenuText();
+}
+
+function renderRoost() {
+  const list = document.getElementById("phoenixList");
+
+  document.getElementById("roostShards").textContent =
+    `Ember Shards: ${saveData.shards}`;
+
+  list.innerHTML = "";
+
+  for (const phoenix of phoenixes) {
+    const owned = saveData.owned.includes(phoenix.id);
+    const equipped = saveData.equipped === phoenix.id;
+
+    const card = document.createElement("div");
+    card.className = `card${equipped ? " equipped" : ""}`;
+
+    const status = equipped
+      ? "Equipped"
+      : owned
+        ? "Owned"
+        : `${phoenix.price} Shards`;
+
+    const action = equipped
+      ? "Equipped"
+      : owned
+        ? "Equip Phoenix"
+        : `Unlock for ${phoenix.price}`;
+
+    card.innerHTML = `
+      <div>
+        <span class="preview" style="background:${phoenix.color};box-shadow:0 0 13px ${phoenix.glow};"></span>
+        <strong>${phoenix.name}</strong>
+      </div>
+
+      <div style="margin-top:7px;color:#d4dce4;font-size:14px;">
+        ${phoenix.ability}: ${phoenix.abilityDescription}
+      </div>
+
+      <div style="margin-top:8px;color:${equipped ? "#ffd15c" : "#a8dfff"};font-size:14px;font-weight:bold;">
+        ${status}
+      </div>
+
+      <button
+        ${equipped ? "disabled" : ""}
+        onclick="selectPhoenix('${phoenix.id}')"
+      >
+        ${action}
+      </button>
+    `;
+
+    list.appendChild(card);
+  }
+}
+
+function selectPhoenix(id) {
+  const phoenix = getPhoenix(id);
+  const owned = saveData.owned.includes(id);
+
+  if (!owned) {
+    if (saveData.shards < phoenix.price) {
+      showGameTip(
+        `You need <strong>${phoenix.price - saveData.shards}</strong> more Ember Shards.`,
+        2200
+      );
+      return;
+    }
+
+    saveData.shards -= phoenix.price;
+    saveData.owned.push(id);
+  }
+
+  saveData.equipped = id;
+  saveGame();
+
+  renderRoost();
+  updateMenuText();
+}
+
+function openLeaderboard() {
+  menu.classList.add("hidden");
+  roost.classList.add("hidden");
+  leaderboardScreen.classList.remove("hidden");
+
+  renderLeaderboard();
+}
+
+function closeLeaderboard() {
+  leaderboardScreen.classList.add("hidden");
+  menu.classList.remove("hidden");
+}
+
+function renderLeaderboard() {
+  const list = document.getElementById("leaderboardList");
+
+  if (!leaderboardData.length) {
+    list.innerHTML = `
+      <div class="leaderboard-empty">
+        No completed flights yet.<br>
+        Start an Endless Flight to set your first record.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = "";
+
+  leaderboardData.forEach((entry, index) => {
+    const phoenix = getPhoenix(entry.phoenix);
+    const row = document.createElement("div");
+
+    row.className =
+      `leaderboard-row${index === 0 ? " first" : ""}`;
+
+    row.innerHTML = `
+      <div class="leaderboard-rank">#${index + 1}</div>
+
+      <div>
+        <div class="leaderboard-distance">
+          ${entry.distance.toLocaleString()} m
+        </div>
+
+        <div class="leaderboard-detail">
+          +${entry.shards} shards · ${entry.date || "Saved flight"}
+        </div>
+      </div>
+
+      <div class="leaderboard-phoenix" style="color:${phoenix.glow};">
+        ${phoenix.name.replace(" Phoenix", "")}
+      </div>
+    `;
+
+    list.appendChild(row);
+  });
+}
+
+function openTutorial(fromGame = false) {
+  tutorialIndex = 0;
+  tutorialScreen.dataset.fromGame = fromGame ? "true" : "false";
+
+  tutorialScreen.classList.remove("hidden");
+  renderTutorialStep();
+}
+
+function nextTutorialStep() {
+  tutorialIndex++;
+
+  if (tutorialIndex >= tutorialSteps.length) {
+    finishTutorial();
+    return;
+  }
+
+  renderTutorialStep();
+}
+
+function skipTutorial() {
+  finishTutorial();
+}
+
+function finishTutorial() {
+  saveData.tutorialSeen = true;
+  saveGame();
+
+  tutorialScreen.classList.add("hidden");
+
+  if (tutorialScreen.dataset.fromGame === "true") {
+    showGameTip(
+      "Hold to <strong>rise</strong>. Release to <strong>glide</strong>.",
+      3200
+    );
+  } else {
+    menu.classList.remove("hidden");
+  }
+}
+
+const tutorialSteps = [
+  {
+    title: "FLY",
+    text: "Hold anywhere on the screen to rise. Release your finger to glide downward.",
+    art: `
+      <div class="tutorial-bird"></div>
+      <div class="tutorial-finger">HOLD</div>
+    `
+  },
+
+  {
+    title: "COLLECT",
+    text: "Fly through the center gaps. Touch glowing Ember Shards to collect them.",
+    art: `
+      <div class="tutorial-bird" style="top:26px;left:44px;"></div>
+      <div class="tutorial-shard"></div>
+    `
+  },
+
+  {
+    title: "CHECKPOINTS",
+    text: "Every 1,000 meters is a checkpoint. After a crash, revive with Ember Shards.",
+    art: `
+      <div class="tutorial-bird" style="top:30px;left:52px;"></div>
+      <div class="tutorial-gate"></div>
+    `
+  },
+
+  {
+    title: "PHOENIX POWERS",
+    text: "Tap your Phoenix ability button when the trail gets dangerous. Each Phoenix has a unique power.",
+    art: `
+      <div class="tutorial-bird" style="top:24px;left:40px;"></div>
+      <div class="tutorial-ability">ABILITY</div>
+    `
+  }
+];
+
+function renderTutorialStep() {
+  const step = tutorialSteps[tutorialIndex];
+
+  document.getElementById("tutorialStep").textContent =
+    `STEP ${tutorialIndex + 1} OF ${tutorialSteps.length}`;
+
+  document.getElementById("tutorialTitle").textContent = step.title;
+  document.getElementById("tutorialText").textContent = step.text;
+  document.getElementById("tutorialArt").innerHTML = step.art;
+
+  document.getElementById("tutorialNext").textContent =
+    tutorialIndex === tutorialSteps.length - 1
+      ? "Start Flying"
+      : "Next";
+}
+
+function beginHold(event) {
+  if (!gameRunning || pausedForRevive) return;
+
+  if (event && event.target === abilityButton) return;
+
+  holding = true;
+
+  if (event && canvas.setPointerCapture) {
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {}
+  }
+}
+
+function endHold() {
+  holding = false;
+}
+
+canvas.addEventListener("pointerdown", event => {
+  event.preventDefault();
+  beginHold(event);
 });
 
-if(target){
-arcanePulse=false;
-
-target.x=-220;
-target.shardX=-220;
-
-showTip(
-"<strong>Arcane Pulse!</strong><br>The nearest obstacle was destroyed."
-);
-
-updateAbilityButton();
-}
-}
-
-if(equippedPhoenix==="solar"&&sunfireGrace){
-sunfireGrace=false;
-sunfireActive=true;
-
-showTip(
-"<strong>Sunfire Grace!</strong><br>Your next collision burns through rock."
-);
-
-updateAbilityButton();
-}
-}
-
-function addRock(start=660){
-let gap=Math.max(150,220-level*7);
-
-let middle=
-gap/2+45+
-Math.random()*(H-gap-90);
-
-if(distance>=5000&&Math.random()<.25){
-gap=Math.max(140,gap-18);
-
-middle=
-H/2+
-(Math.random()-.5)*35;
-}
-
-else if(distance>=3000&&Math.random()<.30){
-middle=H*.69+Math.random()*70;
-}
-
-else if(distance>=2000&&Math.random()<.32){
-middle=H*.20+Math.random()*70;
-}
-
-middle=Math.max(
-gap/2+45,
-Math.min(H-gap/2-45,middle)
-);
-
-const width=118;
-
-const top=middle-gap/2;
-const bottom=middle+gap/2;
-
-const face=Array.from({length:7},(_,i)=>({
-dx:i*width/6,
-top:top-8-Math.random()*28,
-bottom:bottom+8+Math.random()*28
-}));
-
-rocks.push({
-x:start,
-width,
-top,
-bottom,
-face,
-
-shard:Math.random()<.35,
-shardX:start+width/2,
-shardY:top+42+Math.random()*(gap-84),
-shardCollected:false
-});
-}
-
-function startGame(practice=false){
-playing=true;
-holding=false;
-
-bird={
-x:95,
-y:380,
-velocity:0,
-radius:25
-};
-
-rocks=[];
-embers=makeEmbers();
-trails=[];
-gate=null;
-
-distance=0;
-seconds=0;
-level=0;
-runShards=0;
-
-checkpoint=0;
-checkpointFlash=0;
-
-revivedThisRun=false;
-reviveSafety=0;
-
-stormShield=false;
-arcanePulse=false;
-sunfireGrace=false;
-sunfireActive=false;
-
-tipTimer=0;
-gameTip.classList.add("hidden");
-
-lastTime=performance.now();
-
-menu.classList.add("hidden");
-roost.classList.add("hidden");
-leaderboardScreen.classList.add("hidden");
-reviveScreen.classList.add("hidden");
-
-addRock(720);
-
-updateAbilityButton();
-
-if(practice){
-showTip(
-"<strong>Practice flight started.</strong><br>Hold to rise, then release to glide.",
-5
-);
-}
-
-requestAnimationFrame(loop);
-}
-
-c.addEventListener("touchstart",event=>{
-event.preventDefault();
-
-if(playing){
-holding=true;
-}
-},{passive:false});
-
-c.addEventListener("touchend",event=>{
-event.preventDefault();
-
-holding=false;
-},{passive:false});
-
-c.addEventListener("touchcancel",()=>{
-holding=false;
+canvas.addEventListener("pointerup", event => {
+  event.preventDefault();
+  endHold();
 });
 
-c.addEventListener("mousedown",()=>{
-if(playing){
-holding=true;
-}
+canvas.addEventListener("pointercancel", endHold);
+canvas.addEventListener("pointerleave", endHold);
+
+window.addEventListener("pointerup", endHold);
+
+abilityButton.addEventListener("pointerdown", event => {
+  event.stopPropagation();
 });
 
-window.addEventListener("mouseup",()=>{
-holding=false;
+window.addEventListener("keydown", event => {
+  if (event.code === "Space" || event.code === "ArrowUp") {
+    event.preventDefault();
+    holding = true;
+  }
+
+  if (event.code === "KeyE") {
+    useAbility();
+  }
 });
 
-function triggerGameOver(){
-if(!playing)return;
+window.addEventListener("keyup", event => {
+  if (event.code === "Space" || event.code === "ArrowUp") {
+    holding = false;
+  }
+});
 
-playing=false;
-holding=false;
+window.addEventListener("blur", () => {
+  holding = false;
+});
 
-updateAbilityButton();
-
-const canRevive=
-checkpoint>0&&
-!revivedThisRun&&
-totalShards>=REVIVE_COST;
-
-if(canRevive){
-reviveText.innerHTML=`
-You reached the ${checkpoint.toLocaleString()} m checkpoint.<br><br>
-
-Spend <b>${REVIVE_COST} saved Ember Shards</b><br>
-to return to that checkpoint?
-`;
-
-reviveScreen.classList.remove("hidden");
-
-return;
-}
-
-endFlight();
-}
-
-function endFlight(){
-playing=false;
-holding=false;
-tutorialRunning=false;
-
-reviveScreen.classList.add("hidden");
-gameTip.classList.add("hidden");
-
-const finalDistance=Math.floor(distance);
-const wasNewBest=finalDistance>best;
-
-best=Math.max(best,finalDistance);
-
-addLeaderboardEntry();
-
-totalShards+=runShards;
-
-save();
+loadAllImages();
 updateMenuText();
+function showStartupScreen() {
+  menu.classList.remove("hidden");
+  roost.classList.add("hidden");
+  reviveScreen.classList.add("hidden");
+  tutorialScreen.classList.add("hidden");
+  leaderboardScreen.classList.add("hidden");
 
-bestText.innerHTML=`
-Best: ${best.toLocaleString()} m<br>
-Highest checkpoint: ${
-highestCheckpoint
-?highestCheckpoint.toLocaleString()+" m"
-:"Not reached"
+  abilityButton.classList.add("hidden");
+  gameTip.classList.add("hidden");
+
+  updateMenuText();
 }
 
-<br><br>
+window.addEventListener("load", () => {
+  showStartupScreen();
 
-Flight ended at <b>${finalDistance.toLocaleString()} m</b>
-${wasNewBest?`<br><span style="color:#ffd15c">NEW BEST!</span>`:""}
-
-<br>
-Run Shards: <b>${runShards}</b><br>
-Total Shards: ${totalShards}
-
-<br><br>
-
-Your flight was saved in <b>Top Flights</b>.
-`;
-
-menu.classList.remove("hidden");
-}
-
-function reviveFlight(){
-if(totalShards<REVIVE_COST)return;
-
-totalShards-=REVIVE_COST;
-
-revivedThisRun=true;
-distance=checkpoint;
-
-bird={
-x:95,
-y:H/2,
-velocity:0,
-radius:25
-};
-
-rocks=[];
-trails=[];
-gate=null;
-
-reviveSafety=1.8;
-
-stormShield=false;
-arcanePulse=false;
-sunfireGrace=false;
-sunfireActive=false;
-
-playing=true;
-holding=false;
-
-lastTime=performance.now();
-
-save();
-
-reviveScreen.classList.add("hidden");
-
-showTip(
-"<strong>Phoenix reborn.</strong><br>You are protected briefly.",
-3
-);
-
-updateAbilityButton();
-
-requestAnimationFrame(loop);
-}
-
-function mountains(color,y,height,spacing,speed){
-const offset=(distance*speed)%spacing;
-
-x.fillStyle=color;
-x.beginPath();
-
-x.moveTo(-spacing-offset,H);
-
-for(
-let px=-spacing-offset;
-px<W+spacing;
-px+=spacing
-){
-x.lineTo(px,y);
-x.lineTo(px+spacing/2,y-height);
-x.lineTo(px+spacing,y);
-}
-
-x.lineTo(W+spacing,H);
-
-x.closePath();
-x.fill();
-}
-
-function zone(){
-if(distance>=4000){
-return{
-name:"VERDANT WILDS",
-top:"#123826",
-mid:"#0b2018",
-bottom:"#06110d",
-m1:"#10271c",
-m2:"#163b27",
-m3:"#1d5131",
-rock:"#173126",
-edge:"#72f59b",
-particle:"#69ff9a"
-};
-}
-
-if(distance>=2000){
-return{
-name:"AZURE PEAKS",
-top:"#10284b",
-mid:"#0b1733",
-bottom:"#060a18",
-m1:"#0b1d36",
-m2:"#102b48",
-m3:"#183a55",
-rock:"#172a3c",
-edge:"#65dfff",
-particle:"#55ddff"
-};
-}
-
-return{
-name:"EMBER CAVERNS",
-top:"#35122f",
-mid:"#1a1022",
-bottom:"#080914",
-m1:"#1d1422",
-m2:"#281522",
-m3:"#351821",
-rock:"#241820",
-edge:"#ff8035",
-particle:"#ff7040"
-};
-}
-function loop(now){
-if(!playing)return;
-
-const dt=Math.min(
-.03,
-(now-lastTime)/1000
-);
-
-lastTime=now;
-
-seconds+=dt;
-distance+=52*dt;
-
-level=Math.min(
-10,
-Math.floor(distance/500)
-);
-
-tipTimer-=dt;
-
-if(tipTimer<=0){
-gameTip.classList.add("hidden");
-}
-
-checkpointFlash=Math.max(
-0,
-checkpointFlash-dt
-);
-
-reviveSafety=Math.max(
-0,
-reviveSafety-dt
-);
-
-bird.velocity+=(
-holding
-?-720
-:920
-)*dt;
-
-bird.velocity=Math.max(
--360,
-Math.min(420,bird.velocity)
-);
-
-bird.y+=bird.velocity*dt;
-
-for(const ember of embers){
-ember.x-=ember.speed*dt;
-
-ember.y+=Math.sin(
-seconds*2+
-ember.drift
-)*12*dt;
-
-if(ember.x<-8){
-ember.x=W+8;
-ember.y=Math.random()*H;
-}
-}
-
-trails.push({
-x:bird.x-32,
-y:bird.y+(Math.random()-.5)*18,
-size:7+Math.random()*9,
-life:.8,
-color:P[equippedPhoenix].color
+  setTimeout(() => {
+    if (!imagesReady) {
+      updateMenuText();
+    }
+  }, 1000);
 });
 
-trails=trails.filter(trail=>{
-trail.life-=dt;
-
-trail.x-=(
-230+
-Math.random()*120
-)*dt;
-
-trail.y+=Math.sin(
-seconds*8+
-trail.x*.03
-)*12*dt;
-
-return trail.life>0&&trail.x>-70;
-});
-
-const nextCheckpoint=
-checkpoint+CHECKPOINT_DISTANCE;
-
-const calm=
-distance>=nextCheckpoint-220;
-
-if(
-reviveSafety<=0&&
-!calm&&
-!gate&&
-(
-rocks.length===0||
-rocks[rocks.length-1].x<340
-)
-){
-addRock();
-}
-
-const speed=Math.min(
-265,
-155+level*11
-);
-
-for(const rock of rocks){
-rock.x-=speed*dt;
-
-if(rock.shard&&!rock.shardCollected){
-rock.shardX-=speed*dt;
-
-if(equippedPhoenix==="verdant"){
-const dx=bird.x-rock.shardX;
-const dy=bird.y-rock.shardY;
-
-const shardDistance=Math.hypot(dx,dy);
-
-if(shardDistance<MAGNET_RANGE){
-const pull=
-(1-shardDistance/MAGNET_RANGE)*3.2;
-
-rock.shardX+=dx*pull*dt;
-rock.shardY+=dy*pull*dt;
-}
-}
-
-const shardXDistance=bird.x-rock.shardX;
-const shardYDistance=bird.y-rock.shardY;
-
-if(
-shardXDistance*shardXDistance+
-shardYDistance*shardYDistance<
-(bird.radius+14)*(bird.radius+14)
-){
-rock.shardCollected=true;
-runShards++;
-
-if(
-tutorialRunning&&
-!tutorialShardSeen
-){
-tutorialShardSeen=true;
-
-showTip(
-"<strong>Ember Shard collected!</strong><br>Spend saved Shards in the Phoenix Roost.",
-5
-);
-}
-}
-}
-
-const hitSide=
-bird.x+bird.radius>rock.x&&
-bird.x-bird.radius<rock.x+rock.width;
-
-const hitRock=
-bird.y-bird.radius<rock.top||
-bird.y+bird.radius>rock.bottom;
-
-if(hitSide&&hitRock){
-if(
-equippedPhoenix==="azure"&&
-stormShield
-){
-stormShield=false;
-
-rock.x=-220;
-rock.shardX=-220;
-
-showTip(
-"<strong>Storm Shield!</strong><br>Azure Phoenix blocked the collision.",
-3
-);
-
-continue;
-}
-
-if(
-equippedPhoenix==="solar"&&
-sunfireActive
-){
-sunfireActive=false;
-
-rock.x=-220;
-rock.shardX=-220;
-
-runShards+=2;
-
-showTip(
-"<strong>Sunfire Grace!</strong><br>The rock burned away. +2 Shards.",
-3
-);
-
-continue;
-}
-
-triggerGameOver();
-
-return;
-}
-}
-
-rocks=rocks.filter(rock=>{
-return rock.x>-150;
-});
-
-if(
-calm&&
-!gate&&
-rocks.length===0&&
-reviveSafety<=0
-){
-gate={
-x:470,
-y:H/2,
-value:nextCheckpoint,
-pulse:0
-};
-}
-
-if(gate){
-gate.x-=speed*dt;
-gate.pulse+=dt;
-
-if(gate.x<bird.x){
-checkpoint=gate.value;
-
-runShards++;
-checkpointFlash=2.6;
-
-if(equippedPhoenix==="azure"){
-stormShield=true;
-}
-
-if(equippedPhoenix==="violet"){
-arcanePulse=true;
-}
-
-if(equippedPhoenix==="solar"){
-sunfireGrace=true;
-}
-
-if(checkpoint>highestCheckpoint){
-highestCheckpoint=checkpoint;
-
-save();
-}
-
-if(
-tutorialRunning&&
-!tutorialGateSeen
-){
-tutorialGateSeen=true;
-
-showTip(
-"<strong>Checkpoint reached!</strong><br>You gained a Shard and one revive.",
-5
-);
-}
-
-gate=null;
-
-addRock(760);
-
-updateAbilityButton();
-}
-}
-
-if(
-reviveSafety<=0&&
-(
-bird.y-bird.radius<0||
-bird.y+bird.radius>H
-)
-){
-triggerGameOver();
-
-return;
-}
-
-draw();
-
-requestAnimationFrame(loop);
-}
-function draw(){
-const z=zone();
-
-const sky=x.createLinearGradient(
-0,
-0,
-0,
-H
-);
-
-sky.addColorStop(0,z.top);
-sky.addColorStop(.48,z.mid);
-sky.addColorStop(1,z.bottom);
-
-x.fillStyle=sky;
-x.fillRect(0,0,W,H);
-
-mountains(z.m1,575,92,180,.08);
-mountains(z.m2,640,125,145,.16);
-mountains(z.m3,705,110,112,.26);
-
-for(const ember of embers){
-x.globalAlpha=.55;
-
-x.fillStyle=
-ember.size>2
-?z.particle
-:"#ed542d";
-
-x.beginPath();
-
-x.arc(
-ember.x,
-ember.y,
-ember.size,
-0,
-Math.PI*2
-);
-
-x.fill();
-}
-
-x.globalAlpha=1;
-
-/* Moving Phoenix flame trail */
-
-for(const trail of trails){
-const alpha=trail.life/.8;
-
-x.save();
-
-x.globalAlpha=alpha;
-
-x.shadowBlur=16;
-x.shadowColor=trail.color;
-x.fillStyle=trail.color;
-
-x.beginPath();
-
-x.arc(
-trail.x,
-trail.y,
-trail.size*alpha,
-0,
-Math.PI*2
-);
-
-x.fill();
-
-x.restore();
-}
-
-/* Volcanic rock and Ember Shards */
-
-for(const rock of rocks){
-x.fillStyle=z.rock;
-x.strokeStyle=z.edge;
-x.lineWidth=2.5;
-
-/* Top formation */
-
-x.beginPath();
-
-x.moveTo(rock.x,0);
-x.lineTo(rock.x+rock.width,0);
-
-for(let i=6;i>=0;i--){
-x.lineTo(
-rock.x+rock.face[i].dx,
-rock.face[i].top
-);
-}
-
-x.closePath();
-x.fill();
-x.stroke();
-
-/* Bottom formation */
-
-x.beginPath();
-
-x.moveTo(rock.x,H);
-x.lineTo(rock.x+rock.width,H);
-
-for(let i=6;i>=0;i--){
-x.lineTo(
-rock.x+rock.face[i].dx,
-rock.face[i].bottom
-);
-}
-
-x.closePath();
-x.fill();
-x.stroke();
-
-/* Ember Shard */
-
-if(
-rock.shard&&
-!rock.shardCollected
-){
-x.save();
-
-x.translate(
-rock.shardX,
-rock.shardY
-);
-
-x.rotate(seconds*2);
-
-x.shadowBlur=14;
-x.shadowColor="#ff7b2f";
-x.fillStyle="#ffd15c";
-
-x.beginPath();
-
-x.moveTo(0,-11);
-x.lineTo(8,0);
-x.lineTo(0,11);
-x.lineTo(-8,0);
-
-x.closePath();
-x.fill();
-
-x.restore();
-}
-}
-
-/* Phoenix checkpoint gate */
-
-if(gate){
-const phoenix=P[equippedPhoenix];
-
-x.save();
-
-x.translate(gate.x,gate.y);
-
-const pulse=
-1+Math.sin(gate.pulse*8)*.08;
-
-x.scale(pulse,pulse);
-
-x.globalAlpha=.28;
-x.fillStyle=phoenix.color;
-
-x.shadowBlur=30;
-x.shadowColor=phoenix.color;
-
-x.beginPath();
-
-x.ellipse(
-0,
-0,
-38,
-68,
-0,
-0,
-Math.PI*2
-);
-
-x.fill();
-
-x.globalAlpha=1;
-x.strokeStyle="#ffd15c";
-x.lineWidth=5;
-
-x.beginPath();
-
-x.ellipse(
-0,
-0,
-38,
-68,
-0,
-0,
-Math.PI*2
-);
-
-x.stroke();
-
-x.restore();
-}
-
-/* Verdant Phoenix: Ember Magnet */
-
-if(equippedPhoenix==="verdant"){
-x.save();
-
-x.globalAlpha=.18;
-
-x.strokeStyle="#62f58c";
-x.fillStyle="#62f58c";
-
-x.shadowBlur=28;
-x.shadowColor="#56f58a";
-
-x.beginPath();
-
-x.arc(
-bird.x,
-bird.y,
-MAGNET_RANGE,
-0,
-Math.PI*2
-);
-
-x.stroke();
-
-x.restore();
-}
-
-/* Azure Phoenix: Storm Shield */
-
-if(
-equippedPhoenix==="azure"&&
-stormShield
-){
-x.save();
-
-x.strokeStyle="#67e7ff";
-x.lineWidth=3;
-
-x.shadowBlur=24;
-x.shadowColor="#36dfff";
-
-x.beginPath();
-
-x.arc(
-bird.x,
-bird.y,
-42,
-0,
-Math.PI*2
-);
-
-x.stroke();
-
-x.restore();
-}
-
-/* Violet Phoenix: charged Arcane Pulse */
-
-if(
-equippedPhoenix==="violet"&&
-arcanePulse
-){
-x.save();
-
-x.globalAlpha=.35;
-
-x.strokeStyle="#c879ff";
-x.lineWidth=3;
-
-x.shadowBlur=28;
-x.shadowColor="#9e4bff";
-
-x.beginPath();
-
-x.arc(
-bird.x,
-bird.y,
-43,
-0,
-Math.PI*2
-);
-
-x.stroke();
-
-x.restore();
-}
-
-/* Solar Phoenix: charged or active Sunfire Grace */
-
-if(
-equippedPhoenix==="solar"&&
-(
-sunfireGrace||
-sunfireActive
-)
-){
-x.save();
-
-x.globalAlpha=
-sunfireActive
-?.52
-:.28;
-
-x.strokeStyle="#ffd15c";
-x.lineWidth=4;
-
-x.shadowBlur=30;
-x.shadowColor="#ff9b2f";
-
-x.beginPath();
-
-x.arc(
-bird.x,
-bird.y,
-sunfireActive
-?45
-:60,
-0,
-Math.PI*2
-);
-
-x.stroke();
-
-x.restore();
-}
-
-/* Phoenix itself */
-
-const phoenix=P[equippedPhoenix];
-
-x.save();
-
-x.translate(
-bird.x,
-bird.y
-);
-
-x.rotate(
-Math.max(
--.38,
-Math.min(
-.58,
-bird.velocity/650
-)
-)
-);
-
-x.filter=phoenix.filter;
-
-x.shadowBlur=22;
-x.shadowColor=phoenix.shadow;
-
-if(sprite){
-x.drawImage(
-sprite,
--52,
--52,
-104,
-104
-);
-}else{
-x.fillStyle=phoenix.color;
-
-x.beginPath();
-
-x.arc(
-0,
-0,
-25,
-0,
-Math.PI*2
-);
-
-x.fill();
-}
-
-x.restore();
-
-/* HUD: distance */
-
-x.fillStyle="#fff";
-x.font="bold 20px Arial";
-
-x.fillText(
-Math.floor(distance).toLocaleString()+" m",
-16,
-32
-);
-
-/* HUD: run Shards */
-
-x.fillStyle="#ffd15c";
-x.font="bold 15px Arial";
-
-x.fillText(
-"SHARDS: "+runShards,
-16,
-57
-);
-
-/* HUD: equipped Phoenix ability state */
-
-x.font="bold 13px Arial";
-
-if(equippedPhoenix==="verdant"){
-x.fillStyle="#62f58c";
-
-x.fillText(
-"EMBER MAGNET",
-16,
-80
-);
-}
-
-if(equippedPhoenix==="azure"){
-x.fillStyle=
-stormShield
-?"#67e7ff"
-:"#8a9ba8";
-
-x.fillText(
-stormShield
-?"STORM SHIELD READY"
-:"STORM SHIELD USED",
-16,
-80
-);
-}
-
-if(equippedPhoenix==="violet"){
-x.fillStyle=
-arcanePulse
-?"#c879ff"
-:"#8a6a9f";
-
-x.fillText(
-arcanePulse
-?"ARCANE PULSE READY"
-:"ARCANE PULSE USED",
-16,
-80
-);
-}
-
-if(equippedPhoenix==="solar"){
-x.fillStyle=
-sunfireGrace
-?"#ffd15c"
-:(
-sunfireActive
-?"#fff2b0"
-:"#a58c68"
-);
-
-x.fillText(
-sunfireGrace
-?"SUNFIRE GRACE READY"
-:(
-sunfireActive
-?"SUNFIRE GRACE ACTIVE"
-:"SUNFIRE GRACE USED"
-),
-16,
-80
-);
-}
-
-/* HUD: zone and level */
-
-x.textAlign="right";
-
-x.fillStyle=phoenix.color;
-x.font="bold 15px Arial";
-
-x.fillText(
-z.name+" · LEVEL "+(level+1),
-402,
-32
-);
-
-x.textAlign="left";
-
-/* Checkpoint announcement */
-
-if(checkpointFlash>0){
-x.textAlign="center";
-
-x.fillStyle="#ffd15c";
-x.font="bold 25px Arial";
-
-x.fillText(
-"CHECKPOINT "+
-checkpoint.toLocaleString()+
-" m",
-W/2,
-118
-);
-
-x.font="bold 17px Arial";
-
-x.fillText(
-"+1 EMBER SHARD",
-W/2,
-146
-);
-
-if(equippedPhoenix==="azure"){
-x.fillStyle="#67e7ff";
-
-x.fillText(
-"STORM SHIELD CHARGED",
-W/2,
-171
-);
-}
-
-if(equippedPhoenix==="violet"){
-x.fillStyle="#c879ff";
-
-x.fillText(
-"ARCANE PULSE CHARGED",
-W/2,
-171
-);
-}
-
-if(equippedPhoenix==="solar"){
-x.fillStyle="#ffd15c";
-
-x.fillText(
-"SUNFIRE GRACE CHARGED",
-W/2,
-171
-);
-}
-
-x.textAlign="left";
-}
-}
-
-updateMenuText();
+showStartupScreen();
 </script>
 
 </body>
 </html>
+
+  
+  
