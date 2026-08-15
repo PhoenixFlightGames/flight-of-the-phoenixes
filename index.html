@@ -3,498 +3,402 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Flight of the Phoenixes</title>
+<meta name="theme-color" content="#11101c">
+<title>*TESTING FOR* Flight of the Phoenixes</title>
 
 <style>
-*{
-box-sizing:border-box;
+:root{
+  --gold:#ffd15c;
+  --ink:#090a12;
+  --panel:rgba(10,13,27,.94);
+  --cyan:#69e9ff;
 }
 
-html,body{
-margin:0;
-width:100%;
-height:100%;
-overflow:hidden;
-background:#080914;
-font-family:Arial,sans-serif;
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+  width:100%;
+  height:100%;
+  margin:0;
+  overflow:hidden;
+  background:#070811;
+  color:#fff;
+  font-family:Arial,Helvetica,sans-serif;
 }
 
 canvas{
-display:block;
-width:100vw;
-height:100vh;
-touch-action:none;
-}
-
-.screen{
-position:fixed;
-inset:0;
-z-index:10;
-display:flex;
-flex-direction:column;
-align-items:center;
-justify-content:center;
-padding:28px;
-color:#fff;
-text-align:center;
-background:rgba(8,9,20,.94);
+  display:block;
+  width:100vw;
+  height:100vh;
+  touch-action:none;
 }
 
 .hidden{
-display:none!important;
+  display:none!important;
 }
 
-h1{
-margin:0 0 20px;
-color:#ffc65a;
-font-size:39px;
-line-height:1.12;
-text-shadow:0 0 20px #f05224;
+.screen{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  padding:26px 20px;
+  overflow:auto;
+  background:
+    radial-gradient(circle at 50% 18%,rgba(255,118,54,.17),transparent 34%),
+    linear-gradient(rgba(8,8,18,.91),rgba(5,6,13,.97));
+  text-align:center;
 }
 
-p{
-max-width:365px;
-color:#e1dbe5;
-font-size:17px;
-line-height:1.45;
+.screen h1{
+  margin:0 0 6px;
+  color:var(--gold);
+  font-size:clamp(31px,8vw,45px);
+  line-height:1.03;
+  letter-spacing:1px;
+  text-shadow:0 0 24px rgba(255,125,53,.72);
+}
+
+.screen p{
+  max-width:370px;
+  margin:2px 0 13px;
+  color:#dce8f3;
+  font-size:16px;
+  line-height:1.45;
 }
 
 button{
-width:min(360px,86vw);
-margin:8px 0;
-padding:16px;
-border:2px solid #ffc65a;
-border-radius:14px;
-background:#592540;
-color:#fff;
-font-size:19px;
-font-weight:bold;
-cursor:pointer;
+  width:min(370px,90vw);
+  min-height:53px;
+  margin:2px 0;
+  padding:12px 16px;
+  border:2px solid var(--gold);
+  border-radius:14px;
+  background:linear-gradient(135deg,#633039,#2a1830);
+  box-shadow:0 5px 0 rgba(0,0,0,.28),0 0 14px rgba(255,173,77,.16);
+  color:#fff;
+  font:700 17px Arial,Helvetica,sans-serif;
+  cursor:pointer;
 }
 
 button:active{
-transform:scale(.98);
+  transform:translateY(2px) scale(.985);
+  box-shadow:0 2px 0 rgba(0,0,0,.28);
 }
 
-.roost,
-.leaderboard-list{
-width:min(390px,92vw);
-max-height:64vh;
-overflow:auto;
+button.secondary{
+  border-color:var(--cyan);
+  background:linear-gradient(135deg,#164d68,#18213d);
 }
 
-.shards{
-color:#ffd15c;
-font-size:22px;
-font-weight:bold;
+button.dark{
+  border-color:#9c819d;
+  background:#302235;
+}
+
+.small-note{
+  min-height:41px;
+  color:#bcd1e1;
+  font-size:14px;
+  line-height:1.45;
+}
+
+.shard-total{
+  margin:2px 0 8px;
+  color:var(--gold);
+  font-size:21px;
+  font-weight:700;
+}
+
+.roost-list,
+.score-list{
+  width:min(400px,94vw);
+  max-height:58vh;
+  overflow-y:auto;
+  padding:2px;
 }
 
 .card{
-margin:9px 0;
-padding:14px;
-border:1px solid #744357;
-border-radius:12px;
-background:#221522;
-text-align:left;
+  margin:9px 0;
+  padding:13px;
+  border:1px solid #644d69;
+  border-radius:14px;
+  background:linear-gradient(135deg,rgba(48,31,53,.96),rgba(22,24,39,.96));
+  text-align:left;
 }
 
 .card.equipped{
-background:#402033;
+  border-color:var(--gold);
+  box-shadow:0 0 20px rgba(255,209,92,.16);
+}
+
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.card-name{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#fff;
+  font-size:17px;
+  font-weight:700;
+}
+
+.dot{
+  width:17px;
+  height:17px;
+  flex:0 0 17px;
+  border-radius:50%;
+}
+
+.card-detail{
+  margin-top:8px;
+  color:#d0dae5;
+  font-size:14px;
+  line-height:1.35;
+}
+
+.card-state{
+  color:var(--gold);
+  font-size:13px;
+  font-weight:700;
+  text-align:right;
 }
 
 .card button{
-width:100%;
-margin:10px 0 0;
-padding:10px;
-font-size:16px;
+  width:100%;
+  min-height:43px;
+  margin:11px 0 0;
+  padding:8px;
+  font-size:15px;
 }
 
-.preview{
-display:inline-block;
-width:17px;
-height:17px;
-margin-right:7px;
-border-radius:50%;
-vertical-align:-3px;
+.card button:disabled{
+  opacity:.62;
+  cursor:default;
 }
 
-.revive-title{
-color:#67e7ff;
-text-shadow:0 0 20px #36dfff;
+.ability{
+  position:fixed;
+  right:17px;
+  bottom:24px;
+  z-index:15;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:94px;
+  height:94px;
+  margin:0;
+  padding:9px;
+  border:3px solid #cb86ff;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 28%,#7f42a2,#311842 67%,#1a0d24);
+  box-shadow:0 0 24px rgba(190,97,255,.66),0 5px 0 rgba(0,0,0,.25);
+  color:#fff;
+  font-size:12px;
+  line-height:1.1;
+  text-align:center;
+  white-space:pre-line;
 }
 
-.revive-button,
-.tutorial-button,
-.leaderboard-button{
-border-color:#67e7ff;
-background:#164c68;
+.ability.solar{
+  border-color:var(--gold);
+  background:radial-gradient(circle at 35% 28%,#e97b24,#722d1a 67%,#32120e);
+  box-shadow:0 0 24px rgba(255,180,45,.66),0 5px 0 rgba(0,0,0,.25);
 }
 
-.end-button,
-.tutorial-skip{
-border-color:#a87d92;
-background:#392333;
+.tip{
+  position:fixed;
+  left:50%;
+  bottom:138px;
+  z-index:16;
+  width:min(335px,84vw);
+  padding:11px 14px;
+  border:1px solid var(--cyan);
+  border-radius:13px;
+  background:rgba(7,22,39,.92);
+  box-shadow:0 0 21px rgba(69,216,255,.34);
+  color:#edfaff;
+  font-size:15px;
+  font-weight:700;
+  line-height:1.35;
+  text-align:center;
+  transform:translateX(-50%);
+  pointer-events:none;
 }
 
-.ability-button{
-position:fixed;
-right:18px;
-bottom:28px;
-z-index:8;
-width:112px;
-height:112px;
-margin:0;
-padding:10px;
-border:3px solid #c879ff;
-border-radius:50%;
-background:radial-gradient(circle,#5a267c,#231329);
-color:#fff;
-font-size:14px;
-line-height:1.15;
-box-shadow:0 0 24px #9e4bff;
+.tip strong{
+  color:var(--gold);
 }
 
-.ability-button.solar{
-border-color:#ffd15c;
-background:radial-gradient(circle,#a95718,#4d2415);
-box-shadow:0 0 24px #ffb62f;
+.score-row{
+  display:grid;
+  grid-template-columns:37px 1fr auto;
+  gap:10px;
+  align-items:center;
+  margin:8px 0;
+  padding:11px 12px;
+  border:1px solid #42647c;
+  border-radius:13px;
+  background:rgba(14,29,46,.95);
+  text-align:left;
 }
 
-.tutorial-screen{
-z-index:20;
-background:rgba(5,8,19,.97);
+.score-row.top{
+  border-color:var(--gold);
+  background:linear-gradient(135deg,#47351c,#241b27);
 }
 
-.tutorial-card{
-width:min(390px,92vw);
-padding:22px 20px;
-border:2px solid #67e7ff;
-border-radius:18px;
-background:linear-gradient(145deg,#152a48,#171329);
-box-shadow:0 0 30px rgba(54,223,255,.35);
+.rank{
+  color:var(--gold);
+  font-size:20px;
+  font-weight:700;
+  text-align:center;
 }
 
-.tutorial-card h1{
-margin:0 0 12px;
-color:#67e7ff;
-font-size:30px;
-line-height:1.12;
-text-shadow:0 0 18px #36dfff;
+.score-distance{
+  color:#fff;
+  font-size:18px;
+  font-weight:700;
 }
 
-.tutorial-step{
-margin-bottom:15px;
-color:#ffd15c;
-font-size:14px;
-font-weight:bold;
-letter-spacing:1px;
+.score-detail{
+  margin-top:3px;
+  color:#bbccd9;
+  font-size:12px;
 }
 
-.tutorial-art{
-position:relative;
-width:100%;
-height:138px;
-margin:8px 0 18px;
-overflow:hidden;
-border:1px solid #42779b;
-border-radius:12px;
-background:linear-gradient(#15304f,#09111f);
+.score-phoenix{
+  font-size:12px;
+  font-weight:700;
+  text-align:right;
 }
 
-.tutorial-bird{
-position:absolute;
-left:48px;
-top:20px;
-width:100px;
-height:100px;
-background-image:var(--ember-phoenix-image);
-background-size:contain;
-background-position:center;
-background-repeat:no-repeat;
-filter:drop-shadow(0 0 14px #ff542f);
-transform:rotate(-8deg);
+.empty{
+  padding:22px 10px;
+  color:#bcd1e1;
+  line-height:1.45;
 }
 
-.tutorial-finger{
-position:absolute;
-right:46px;
-bottom:17px;
-padding:10px 13px;
-border:2px solid #ffd15c;
-border-radius:14px;
-background:rgba(55,26,28,.86);
-color:#fff;
-font-size:14px;
-font-weight:bold;
-animation:pulse 1s ease-in-out infinite;
+#loading{
+  z-index:40;
 }
 
-.tutorial-finger.glide{
-border-color:#67e7ff;
-background:rgba(15,55,77,.86);
+.loading-mark{
+  width:72px;
+  height:72px;
+  margin-bottom:7px;
+  border:5px solid rgba(255,209,92,.25);
+  border-top-color:var(--gold);
+  border-radius:50%;
+  animation:spin .85s linear infinite;
 }
 
-.tutorial-shard{
-position:absolute;
-right:94px;
-top:41px;
-width:25px;
-height:25px;
-background:#ffd15c;
-box-shadow:0 0 16px #ff7b2f;
-transform:rotate(45deg);
-}
-
-.tutorial-gate{
-position:absolute;
-right:66px;
-top:28px;
-width:58px;
-height:86px;
-border:5px solid #ffd15c;
-border-radius:50%;
-box-shadow:0 0 22px #ff9b2f;
-}
-
-.tutorial-ability{
-position:absolute;
-right:30px;
-bottom:15px;
-width:74px;
-height:74px;
-padding-top:20px;
-border:3px solid #c879ff;
-border-radius:50%;
-background:#5a267c;
-box-shadow:0 0 20px #9e4bff;
-color:#fff;
-font-size:11px;
-font-weight:bold;
-text-align:center;
-}
-
-.tutorial-tip{
-min-height:49px;
-margin:0 0 14px;
-color:#dcefff;
-font-size:16px;
-line-height:1.4;
-}
-
-.tutorial-next{
-border-color:#67e7ff;
-background:#164c68;
-}
-
-.tutorial-skip{
-font-size:16px;
-}
-
-.game-tip{
-position:fixed;
-left:50%;
-bottom:142px;
-z-index:9;
-width:min(340px,84vw);
-padding:13px 16px;
-border:2px solid #67e7ff;
-border-radius:14px;
-background:rgba(10,27,46,.94);
-box-shadow:0 0 24px rgba(54,223,255,.45);
-color:#fff;
-font-size:16px;
-font-weight:bold;
-line-height:1.35;
-text-align:center;
-transform:translateX(-50%);
-pointer-events:none;
-}
-
-.game-tip strong{
-color:#ffd15c;
-}
-
-/* Local leaderboard */
-
-.leaderboard-title{
-color:#67e7ff;
-text-shadow:0 0 20px #36dfff;
-}
-
-.leaderboard-subtitle{
-margin:0 0 14px;
-color:#b8ddeb;
-font-size:15px;
-}
-
-.leaderboard-row{
-display:grid;
-grid-template-columns:38px 1fr auto;
-gap:10px;
-align-items:center;
-margin:8px 0;
-padding:12px;
-border:1px solid #3f657d;
-border-radius:12px;
-background:#122032;
-text-align:left;
-}
-
-.leaderboard-row.first{
-border-color:#ffd15c;
-background:linear-gradient(135deg,#3d2d18,#201925);
-box-shadow:0 0 16px rgba(255,209,92,.22);
-}
-
-.leaderboard-rank{
-color:#ffd15c;
-font-size:20px;
-font-weight:bold;
-text-align:center;
-}
-
-.leaderboard-distance{
-color:#fff;
-font-size:18px;
-font-weight:bold;
-}
-
-.leaderboard-detail{
-margin-top:4px;
-color:#b9c9d7;
-font-size:12px;
-line-height:1.35;
-}
-
-.leaderboard-phoenix{
-font-size:13px;
-font-weight:bold;
-text-align:right;
-}
-
-.leaderboard-empty{
-padding:20px 10px;
-color:#b8ddeb;
-font-size:17px;
-line-height:1.45;
-}
-
-@keyframes pulse{
-0%,100%{
-transform:translateY(0);
-opacity:.78;
-}
-
-50%{
-transform:translateY(-8px);
-opacity:1;
-}
+@keyframes spin{
+  to{transform:rotate(360deg);}
 }
 </style>
 </head>
 
 <body>
 
-<canvas id="game" width="420" height="760"></canvas>
+<canvas id="game"></canvas>
 
-<button id="abilityButton" class="ability-button hidden" onclick="useAbility()">
-ABILITY
-</button>
+<button id="abilityButton" class="ability hidden" onclick="useAbility()">ABILITY</button>
+<div id="tip" class="tip hidden"></div>
 
-<div id="gameTip" class="game-tip hidden"></div>
+<div id="loading" class="screen">
+<div class="loading-mark"></div>
+<h1>FLIGHT OF THE<br>PHOENIXES</h1>
+<p id="loadingText">Preparing Phoenix artwork…</p>
+</div>
 
-<div id="menu" class="screen">
+<div id="menu" class="screen hidden">
 <h1>FLIGHT OF THE<br>PHOENIXES</h1>
 
 <p>
-Hold to rise. Release to glide.<br>
-Avoid volcanic rock and collect Ember Shards.
+Tap anywhere to flap upward.<br>
+Fly through the gaps and gather Ember Shards.
 </p>
 
 <button onclick="startGame()">Endless Flight</button>
-<button class="tutorial-button" onclick="openTutorial()">How to Play</button>
-<button onclick="openRoost()">Phoenix Roost</button>
-<button class="leaderboard-button" onclick="openLeaderboard()">Top Flights</button>
+<button class="secondary" onclick="openRoost()">Phoenix Roost</button>
+<button class="secondary" onclick="openScores()">Top Flights</button>
 
-<p id="bestText"></p>
+<div id="menuStatus" class="small-note"></div>
 </div>
 
 <div id="roost" class="screen hidden">
 <h1>PHOENIX ROOST</h1>
-<p class="shards" id="roostShards"></p>
-<div class="roost" id="phoenixList"></div>
-<button onclick="closeRoost()">Back to Flight</button>
+<div id="roostShards" class="shard-total"></div>
+<div id="roostList" class="roost-list"></div>
+<button class="dark" onclick="closeRoost()">Back</button>
 </div>
 
-<div id="leaderboardScreen" class="screen hidden">
-<h1 class="leaderboard-title">TOP FLIGHTS</h1>
-
-<p class="leaderboard-subtitle">
-Your best 10 completed flights on this device.
-</p>
-
-<div class="leaderboard-list" id="leaderboardList"></div>
-
-<button onclick="closeLeaderboard()">Back to Flight</button>
+<div id="scores" class="screen hidden">
+<h1>TOP FLIGHTS</h1>
+<p>Your best 10 completed flights on this device.</p>
+<div id="scoreList" class="score-list"></div>
+<button class="dark" onclick="closeScores()">Back</button>
 </div>
 
-<div id="reviveScreen" class="screen hidden">
-<h1 class="revive-title">PHOENIX FALLEN</h1>
+<div id="revive" class="screen hidden">
+<h1>PHOENIX FALLEN</h1>
 <p id="reviveText"></p>
-<button class="revive-button" onclick="reviveFlight()">Revive for 15 Shards</button>
-<button class="end-button" onclick="endFlight()">End Flight</button>
-</div>
-
-<div id="tutorialScreen" class="screen tutorial-screen hidden">
-<div class="tutorial-card">
-<div class="tutorial-step" id="tutorialStep"></div>
-<h1 id="tutorialTitle"></h1>
-<div class="tutorial-art" id="tutorialArt"></div>
-<p class="tutorial-tip" id="tutorialText"></p>
-<button class="tutorial-next" id="tutorialNext" onclick="nextTutorialStep()">Next</button>
-<button class="tutorial-skip" onclick="skipTutorial()">Skip Tutorial</button>
-</div>
+<button class="secondary" onclick="reviveFlight()">Revive for 15 Shards</button>
+<button class="dark" onclick="finishFlight()">End Flight</button>
 </div>
 
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d", { alpha: false });
 
-const W = 420;
-const H = 760;
+const LOGICAL_W = 420;
+const LOGICAL_H = 760;
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-canvas.width = W;
-canvas.height = H;
+canvas.width = LOGICAL_W * DPR;
+canvas.height = LOGICAL_H * DPR;
 
+ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+ctx.imageSmoothingEnabled = true;
+ctx.imageSmoothingQuality = "high";
+
+const loading = document.getElementById("loading");
+const loadingText = document.getElementById("loadingText");
 const menu = document.getElementById("menu");
 const roost = document.getElementById("roost");
-const reviveScreen = document.getElementById("reviveScreen");
-const tutorialScreen = document.getElementById("tutorialScreen");
-const leaderboardScreen = document.getElementById("leaderboardScreen");
-
+const scores = document.getElementById("scores");
+const revive = document.getElementById("revive");
 const abilityButton = document.getElementById("abilityButton");
-const gameTip = document.getElementById("gameTip");
+const tip = document.getElementById("tip");
 
-const STORAGE_KEY = "flightOfPhoenixesSaveV2";
-const LEADERBOARD_KEY = "flightOfPhoenixesLeaderboardV1";
+const SAVE_KEY = "phoenixFlightSaveV3";
+const SCORES_KEY = "phoenixFlightScoresV3";
 
-const imageSources = {
-  ember: {
-    top: ["IMG_3885.jpeg", "IMG_3886.png"],
-    bottom: ["IMG_3887.png", "IMG_3888.png"]
-  },
+const files = {
+  emberTop: ["IMG_3885.jpeg", "IMG_3886.png"],
+  emberBottom: ["IMG_3887.png", "IMG_3888.png"],
 
-  azure: {
-    top: ["IMG_3889.png", "IMG_3890.png"],
-    bottom: ["IMG_3891.png", "IMG_3892.png"]
-  },
+  azureTop: ["IMG_3889.png", "IMG_3890.png"],
+  azureBottom: ["IMG_3891.png", "IMG_3892.png"],
 
-  verdant: {
-    top: ["IMG_3895.png", "IMG_3896.png"],
-    bottom: ["IMG_3897.png", "IMG_3898.png"]
-  },
+  verdantTop: ["IMG_3895.png", "IMG_3896.png"],
+  verdantBottom: ["IMG_3897.png", "IMG_3898.png"],
 
-  phoenixes: {
+  phoenix: {
     ember: "IMG_3899.png",
     azure: "IMG_3902.png",
     verdant: "IMG_3903.png",
@@ -508,541 +412,510 @@ const phoenixes = [
     id: "ember",
     name: "Ember Phoenix",
     price: 0,
-    color: "#ff5936",
-    glow: "#ff922b",
+    color: "#ff6444",
+    glow: "#ffad45",
     ability: "Flame Shield",
-    abilityDescription: "Blocks one collision for 3 seconds.",
-    abilityLabel: "FLAME\nSHIELD",
-    duration: 180
+    label: "FLAME\nSHIELD"
   },
 
   {
     id: "azure",
     name: "Azure Phoenix",
     price: 60,
-    color: "#4bdcff",
-    glow: "#75f2ff",
+    color: "#59dbff",
+    glow: "#98f5ff",
     ability: "Sky Surge",
-    abilityDescription: "Briefly slows the world for 4 seconds.",
-    abilityLabel: "SKY\nSURGE",
-    duration: 240
+    label: "SKY\nSURGE"
   },
 
   {
     id: "verdant",
     name: "Verdant Phoenix",
     price: 120,
-    color: "#5ee984",
-    glow: "#adff81",
+    color: "#62e983",
+    glow: "#b8ff89",
     ability: "Wildwind",
-    abilityDescription: "Pushes nearby obstacles away for 3 seconds.",
-    abilityLabel: "WILD\nWIND",
-    duration: 180
+    label: "WILD\nWIND"
   },
 
   {
     id: "violet",
     name: "Violet Phoenix",
     price: 200,
-    color: "#c675ff",
-    glow: "#f0a9ff",
+    color: "#ca78ff",
+    glow: "#efb0ff",
     ability: "Star Veil",
-    abilityDescription: "Makes the Phoenix invulnerable for 3 seconds.",
-    abilityLabel: "STAR\nVEIL",
-    duration: 180
+    label: "STAR\nVEIL"
   },
 
   {
     id: "solar",
     name: "Solar Phoenix",
     price: 320,
-    color: "#ffd35d",
-    glow: "#fff1a6",
+    color: "#ffd75c",
+    glow: "#fff2a8",
     ability: "Solar Dash",
-    abilityDescription: "Launches forward and earns bonus shards.",
-    abilityLabel: "SOLAR\nDASH",
-    duration: 80
+    label: "SOLAR\nDASH"
   }
 ];
 
-let saveData = loadSave();
-let leaderboardData = loadLeaderboard();
+let save = loadSave();
+let highScores = loadScores();
 
-let loadedImages = {};
-let imagesReady = false;
+let art = {};
+let artReady = false;
 
-let gameRunning = false;
-let pausedForRevive = false;
-let animationFrame = null;
+let running = false;
+let waitingForRevive = false;
+let animationId = null;
 
-let player;
+let player = null;
 let obstacles = [];
 let particles = [];
+let trail = [];
 let stars = [];
-let trails = [];
 
 let distance = 0;
-let shardsEarned = 0;
-let checkpointDistance = 0;
-let worldSpeed = 3.2;
+let runShards = 0;
+let checkpoint = 0;
 let spawnTimer = 0;
-let invincibleFrames = 0;
-let shieldFrames = 0;
-let slowFrames = 0;
-let windFrames = 0;
-let dashFrames = 0;
-let abilityCooldown = 0;
-let usedRevive = false;
-let currentZone = "ember";
-let newBestThisRun = false;
+let speed = 3.05;
+let zone = "ember";
 
-let holding = false;
-let tutorialIndex = 0;
+let shieldTimer = 0;
+let invincibleTimer = 0;
+let slowTimer = 0;
+let windTimer = 0;
+let dashTimer = 0;
+let abilityTimer = 0;
+
+let revivedThisRun = false;
+let starterRewardShown = false;
 
 function loadSave() {
-  const defaults = {
+  const fallback = {
     shards: 0,
-    bestDistance: 0,
+    best: 0,
     owned: ["ember"],
-    equipped: "ember",
-    tutorialSeen: false
+    equipped: "ember"
   };
 
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const stored = JSON.parse(localStorage.getItem(SAVE_KEY));
 
-    if (!stored) return defaults;
+    if (!stored) return fallback;
 
     return {
       shards: Number(stored.shards || 0),
-      bestDistance: Number(stored.bestDistance || 0),
+      best: Number(stored.best || 0),
       owned: Array.isArray(stored.owned) && stored.owned.length
         ? stored.owned
         : ["ember"],
-      equipped: stored.equipped || "ember",
-      tutorialSeen: Boolean(stored.tutorialSeen)
+      equipped: stored.equipped || "ember"
     };
   } catch {
-    return defaults;
+    return fallback;
   }
 }
 
-function saveGame() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+function storeSave() {
+  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
 }
 
-function loadLeaderboard() {
+function loadScores() {
   try {
-    const stored = JSON.parse(localStorage.getItem(LEADERBOARD_KEY));
+    const stored = JSON.parse(localStorage.getItem(SCORES_KEY));
     return Array.isArray(stored) ? stored : [];
   } catch {
     return [];
   }
 }
 
-function saveLeaderboard() {
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboardData));
+function storeScores() {
+  localStorage.setItem(SCORES_KEY, JSON.stringify(highScores));
 }
 
-function getPhoenix(id) {
-  return phoenixes.find(phoenix => phoenix.id === id) || phoenixes[0];
+function phoenixById(id) {
+  return phoenixes.find(item => item.id === id) || phoenixes[0];
 }
 
-function getZoneForDistance(meters) {
+function randomItem(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function zoneFor(meters) {
   if (meters < 2000) return "ember";
   if (meters < 4000) return "azure";
   return "verdant";
 }
 
-function zoneData(zone) {
-  if (zone === "azure") {
+function zoneStyle(name) {
+  if (name === "azure") {
     return {
-      name: "AZURE PEAKS",
-      skyTop: "#163c6c",
-      skyBottom: "#091526",
-      mist: "#67d9ff",
-      ground: "#153453",
-      accent: "#8df1ff"
+      label: "AZURE PEAKS",
+      top: "#183e74",
+      bottom: "#071323",
+      glow: "#73e4ff",
+      rock: "#1b527a"
     };
   }
 
-  if (zone === "verdant") {
+  if (name === "verdant") {
     return {
-      name: "VERDANT WILDS",
-      skyTop: "#17452d",
-      skyBottom: "#071b15",
-      mist: "#70f0a0",
-      ground: "#17442f",
-      accent: "#b7ff7b"
+      label: "VERDANT WILDS",
+      top: "#1c5132",
+      bottom: "#071b15",
+      glow: "#8cf0a2",
+      rock: "#23633d"
     };
   }
 
   return {
-    name: "EMBER CAVERNS",
-    skyTop: "#5b1f26",
-    skyBottom: "#120d19",
-    mist: "#ff7b47",
-    ground: "#45202a",
-    accent: "#ffc15a"
+    label: "EMBER CAVERNS",
+    top: "#5b2429",
+    bottom: "#130d1a",
+    glow: "#ff9550",
+    rock: "#70302b"
   };
 }
 
-function loadImage(src) {
+function loadRawImage(source) {
   return new Promise(resolve => {
     const image = new Image();
 
-    image.onload = () => {
-      resolve(makeWhiteTransparent(image));
-    };
-
+    image.onload = () => resolve(removeWhiteBackground(image));
     image.onerror = () => {
-      console.warn("Could not load image:", src);
+      console.warn(`Could not load ${source}`);
       resolve(null);
     };
 
-    image.src = src;
+    image.src = source;
   });
 }
 
-function makeWhiteTransparent(image) {
-  const offscreen = document.createElement("canvas");
-  const offCtx = offscreen.getContext("2d", { willReadFrequently: true });
+function removeWhiteBackground(image) {
+  const output = document.createElement("canvas");
+  const outputCtx = output.getContext("2d", { willReadFrequently: true });
 
-  offscreen.width = image.naturalWidth || image.width;
-  offscreen.height = image.naturalHeight || image.height;
+  output.width = image.naturalWidth || image.width;
+  output.height = image.naturalHeight || image.height;
 
-  offCtx.drawImage(image, 0, 0);
+  outputCtx.drawImage(image, 0, 0);
 
-  const imageData = offCtx.getImageData(
+  const data = outputCtx.getImageData(
     0,
     0,
-    offscreen.width,
-    offscreen.height
+    output.width,
+    output.height
   );
 
-  const pixels = imageData.data;
+  for (let i = 0; i < data.data.length; i += 4) {
+    const r = data.data[i];
+    const g = data.data[i + 1];
+    const b = data.data[i + 2];
 
-  for (let i = 0; i < pixels.length; i += 4) {
-    const red = pixels[i];
-    const green = pixels[i + 1];
-    const blue = pixels[i + 2];
-    const alpha = pixels[i + 3];
+    const brightness = (r + g + b) / 3;
+    const range = Math.max(r, g, b) - Math.min(r, g, b);
 
-    const brightness = (red + green + blue) / 3;
-    const colorDifference =
-      Math.max(red, green, blue) - Math.min(red, green, blue);
-
-    const nearlyWhite =
-      brightness > 232 &&
-      colorDifference < 32;
-
-    const softWhite =
-      brightness > 215 &&
-      red > 200 &&
-      green > 200 &&
-      blue > 200 &&
-      colorDifference < 22;
-
-    if (alpha > 0 && (nearlyWhite || softWhite)) {
-      pixels[i + 3] = 0;
+    if (brightness > 240 && range < 26) {
+      data.data[i + 3] = 0;
+    } else if (brightness > 223 && range < 18) {
+      data.data[i + 3] = Math.min(data.data[i + 3], 85);
     }
   }
 
-  offCtx.putImageData(imageData, 0, 0);
+  outputCtx.putImageData(data, 0, 0);
 
-  return offscreen;
+  return output;
 }
 
-async function loadAllImages() {
-  const entries = [];
+async function loadArtwork() {
+  const names = [
+    ...files.emberTop,
+    ...files.emberBottom,
+    ...files.azureTop,
+    ...files.azureBottom,
+    ...files.verdantTop,
+    ...files.verdantBottom,
+    ...Object.values(files.phoenix)
+  ];
 
-  for (const zone of ["ember", "azure", "verdant"]) {
-    for (const side of ["top", "bottom"]) {
-      for (const source of imageSources[zone][side]) {
-        entries.push([source, source]);
-      }
-    }
-  }
+  let completed = 0;
 
-  for (const source of Object.values(imageSources.phoenixes)) {
-    entries.push([source, source]);
-  }
+  const results = await Promise.all(
+    names.map(async name => {
+      const image = await loadRawImage(name);
 
-  const loaded = await Promise.all(
-    entries.map(async ([key, source]) => [key, await loadImage(source)])
+      completed++;
+      loadingText.textContent =
+        `Preparing Phoenix artwork… ${completed}/${names.length}`;
+
+      return [name, image];
+    })
   );
 
-  loaded.forEach(([key, image]) => {
-    loadedImages[key] = image;
+  results.forEach(([name, image]) => {
+    art[name] = image;
   });
 
-  imagesReady = true;
-  updateMenuText();
+  artReady = true;
+  loading.classList.add("hidden");
+  menu.classList.remove("hidden");
 
-  document.documentElement.style.setProperty(
-    "--ember-phoenix-image",
-    `url("${imageSources.phoenixes.ember}")`
-  );
-}
-
-function randomFrom(array) {
-  return array[Math.floor(Math.random() * array.length)];
+  updateMenu();
 }
 
 function makeStars() {
   stars = [];
 
-  for (let i = 0; i < 85; i++) {
+  for (let i = 0; i < 65; i++) {
     stars.push({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      size: Math.random() * 2 + 0.5,
-      speed: Math.random() * 0.65 + 0.15,
-      alpha: Math.random() * 0.65 + 0.2
+      x: Math.random() * LOGICAL_W,
+      y: Math.random() * LOGICAL_H,
+      size: Math.random() * 1.6 + 0.45,
+      alpha: Math.random() * 0.65 + 0.18,
+      drift: Math.random() * 0.45 + 0.08
     });
   }
 }
 
-function setupPlayer() {
-  const phoenix = getPhoenix(saveData.equipped);
+function createPlayer() {
+  const phoenix = phoenixById(save.equipped);
 
-  player = {
-    x: 112,
-    y: H * 0.48,
-    width: 72,
-    height: 72,
-    velocityY: 0,
+  return {
+    x: 94,
+    y: LOGICAL_H * 0.47,
+    w: 76,
+    h: 76,
+    velocity: 0,
     rotation: 0,
     phoenix
   };
 }
 
-function resetRun() {
-  setupPlayer();
+function resetFlight() {
+  player = createPlayer();
+
   obstacles = [];
   particles = [];
-  trails = [];
+  trail = [];
+
   distance = 0;
-  shardsEarned = 0;
-  checkpointDistance = 0;
-  worldSpeed = 3.2;
-  spawnTimer = 90;
-  invincibleFrames = 0;
-  shieldFrames = 0;
-  slowFrames = 0;
-  windFrames = 0;
-  dashFrames = 0;
-  abilityCooldown = 0;
-  usedRevive = false;
-  currentZone = "ember";
-  newBestThisRun = false;
+  runShards = 0;
+  checkpoint = 0;
+  spawnTimer = 88;
+  speed = 3.05;
+  zone = "ember";
+
+  shieldTimer = 0;
+  invincibleTimer = 0;
+  slowTimer = 0;
+  windTimer = 0;
+  dashTimer = 0;
+  abilityTimer = 0;
+
+  revivedThisRun = false;
 
   makeStars();
 }
 
-function updateMenuText() {
-  const imageMessage = imagesReady
-    ? ""
-    : " Loading artwork…";
-
-  document.getElementById("bestText").innerHTML =
-    `Best flight: <strong>${Math.floor(saveData.bestDistance)} m</strong><br>` +
-    `Ember Shards: <strong>${saveData.shards}</strong>${imageMessage}`;
+function updateMenu() {
+  document.getElementById("menuStatus").innerHTML =
+    `Best flight: <strong>${Math.floor(save.best).toLocaleString()} m</strong><br>` +
+    `Ember Shards: <strong>${save.shards}</strong>`;
 }
 
-function showGameTip(html, duration = 3000) {
-  gameTip.innerHTML = html;
-  gameTip.classList.remove("hidden");
+function showTip(message, milliseconds = 2200) {
+  tip.innerHTML = message;
+  tip.classList.remove("hidden");
 
-  clearTimeout(showGameTip.timeout);
+  clearTimeout(showTip.timer);
 
-  showGameTip.timeout = setTimeout(() => {
-    gameTip.classList.add("hidden");
-  }, duration);
+  showTip.timer = setTimeout(() => {
+    tip.classList.add("hidden");
+  }, milliseconds);
 }
 
-function hideGameTip() {
-  clearTimeout(showGameTip.timeout);
-  gameTip.classList.add("hidden");
+function hideTip() {
+  clearTimeout(showTip.timer);
+  tip.classList.add("hidden");
 }
 
 function startGame() {
-  if (!imagesReady) {
-    showGameTip("Artwork is still loading. Please wait a moment.");
-    return;
-  }
+  if (!artReady) return;
 
   menu.classList.add("hidden");
   roost.classList.add("hidden");
-  reviveScreen.classList.add("hidden");
-  leaderboardScreen.classList.add("hidden");
+  scores.classList.add("hidden");
+  revive.classList.add("hidden");
 
-  resetRun();
-  gameRunning = true;
-  pausedForRevive = false;
+  resetFlight();
 
-  abilityButton.textContent = getPhoenix(saveData.equipped).abilityLabel;
-  abilityButton.className = "ability-button";
+  running = true;
+  waitingForRevive = false;
 
-  if (saveData.equipped === "solar") {
+  abilityButton.textContent = player.phoenix.label;
+  abilityButton.className = "ability";
+
+  if (player.phoenix.id === "solar") {
     abilityButton.classList.add("solar");
   }
 
   abilityButton.classList.remove("hidden");
 
-  if (!saveData.tutorialSeen) {
-    openTutorial(true);
+  if (!starterRewardShown) {
+    starterRewardShown = true;
+    runShards += 5;
+
+    showTip(
+      "<strong>WELCOME BACK!</strong><br>+5 Ember Shards to begin your flight.",
+      2800
+    );
   } else {
-    showGameTip(
-      "Hold anywhere to <strong>rise</strong>.<br>Release to <strong>glide</strong>."
+    showTip(
+      "Tap anywhere to <strong>flap</strong>.<br>Fly through gaps and gather Shards.",
+      2700
     );
   }
 
-  cancelAnimationFrame(animationFrame);
-  gameLoop();
+  cancelAnimationFrame(animationId);
+  animationId = requestAnimationFrame(gameLoop);
 }
 
-function stopGame() {
-  gameRunning = false;
-  pausedForRevive = false;
-  holding = false;
+function flap() {
+  if (!running || waitingForRevive || !player) return;
 
-  abilityButton.classList.add("hidden");
-  hideGameTip();
+  player.velocity = -6.55;
+  player.rotation = -0.42;
 
-  cancelAnimationFrame(animationFrame);
+  addParticles(
+    player.x + 18,
+    player.y + player.h * 0.71,
+    player.phoenix.glow,
+    5,
+    1.25
+  );
 }
 
 function gameLoop() {
-  updateGame();
-  drawGame();
+  if (!running) return;
 
-  if (gameRunning) {
-    animationFrame = requestAnimationFrame(gameLoop);
-  }
+  update();
+  render();
+
+  animationId = requestAnimationFrame(gameLoop);
 }
 
-function updateGame() {
-  if (!gameRunning || pausedForRevive) return;
+function update() {
+  if (waitingForRevive) return;
 
-  currentZone = getZoneForDistance(distance);
+  zone = zoneFor(distance);
 
-  const speedMultiplier = slowFrames > 0 ? 0.52 : 1;
-  const activeSpeed = worldSpeed * speedMultiplier;
+  const slowFactor = slowTimer > 0 ? 0.56 : 1;
+  const currentSpeed = speed * slowFactor;
 
-  if (holding) {
-    player.velocityY -= 0.48;
+  player.velocity += 0.37;
+  player.velocity = Math.min(player.velocity, 8.25);
+
+  if (dashTimer > 0) {
+    player.velocity *= 0.9;
+    player.x += (127 - player.x) * 0.14;
+    dashTimer--;
   } else {
-    player.velocityY += 0.34;
+    player.x += (94 - player.x) * 0.13;
   }
 
-  player.velocityY = Math.max(-7.6, Math.min(8.6, player.velocityY));
+  player.y += player.velocity;
 
-  if (dashFrames > 0) {
-    player.velocityY *= 0.89;
-    player.x = 130;
-    dashFrames--;
-  } else {
-    player.x += (112 - player.x) * 0.12;
+  player.rotation += (player.velocity * 0.055 - player.rotation) * 0.16;
+  player.rotation = Math.max(-0.45, Math.min(0.7, player.rotation));
+
+  if (player.y < 12) {
+    player.y = 12;
+    player.velocity = 0;
   }
 
-  player.y += player.velocityY;
-  player.rotation = Math.max(
-    -0.48,
-    Math.min(0.78, player.velocityY * 0.055)
-  );
-
-  if (player.y < 15) {
-    player.y = 15;
-    player.velocityY = 0;
-  }
-
-  if (player.y > H - 96) {
+  if (player.y + player.h > LOGICAL_H - 63) {
     crash();
+    return;
   }
 
-  distance += activeSpeed * 0.36;
+  distance += currentSpeed * 0.35;
+  speed = Math.min(6.3, 3.05 + distance / 3400);
 
-  if (distance > saveData.bestDistance) {
-    saveData.bestDistance = distance;
-    newBestThisRun = true;
+  if (distance > save.best) {
+    save.best = distance;
   }
 
-  const newCheckpoint = Math.floor(distance / 1000) * 1000;
+  const latestCheckpoint = Math.floor(distance / 1000) * 1000;
 
-  if (newCheckpoint > checkpointDistance) {
-    checkpointDistance = newCheckpoint;
-    addParticles(W * 0.5, H * 0.48, "#ffd15c", 34, 4.8);
-    showGameTip(
-      `<strong>CHECKPOINT:</strong> ${checkpointDistance.toLocaleString()} m`,
-      2100
+  if (latestCheckpoint > checkpoint) {
+    checkpoint = latestCheckpoint;
+
+    addParticles(
+      LOGICAL_W * 0.5,
+      LOGICAL_H * 0.48,
+      "#ffd15c",
+      28,
+      4.2
+    );
+
+    showTip(
+      `<strong>CHECKPOINT!</strong><br>${checkpoint.toLocaleString()} m reached.`,
+      1900
     );
   }
-
-  worldSpeed = Math.min(6.8, 3.2 + distance / 3000);
 
   spawnTimer--;
 
   if (spawnTimer <= 0) {
     spawnObstacle();
-    spawnTimer = Math.max(74, 116 - Math.floor(distance / 180));
+    spawnTimer = Math.max(79, 116 - Math.floor(distance / 210));
   }
 
-  updateStars(activeSpeed);
-  updateObstacles(activeSpeed);
+  updateStars(currentSpeed);
+  updateObstacles(currentSpeed);
+  updateTrail();
   updateParticles();
-  updateTrails();
 
-  if (invincibleFrames > 0) invincibleFrames--;
-  if (shieldFrames > 0) shieldFrames--;
-  if (slowFrames > 0) slowFrames--;
-  if (windFrames > 0) windFrames--;
-  if (abilityCooldown > 0) abilityCooldown--;
+  if (shieldTimer > 0) shieldTimer--;
+  if (invincibleTimer > 0) invincibleTimer--;
+  if (slowTimer > 0) slowTimer--;
+  if (windTimer > 0) windTimer--;
+  if (abilityTimer > 0) abilityTimer--;
 
   updateAbilityButton();
 }
-
-function updateStars(speed) {
+function updateStars(currentSpeed) {
   for (const star of stars) {
-    star.x -= star.speed * speed * 0.28;
+    star.x -= star.drift * currentSpeed * 0.38;
 
-    if (star.x < -4) {
-      star.x = W + 4;
-      star.y = Math.random() * H;
+    if (star.x < -3) {
+      star.x = LOGICAL_W + 3;
+      star.y = Math.random() * (LOGICAL_H - 70);
     }
   }
 }
 
-function updateTrails() {
-  trails.push({
-    x: player.x - 22,
-    y: player.y + 35,
-    size: Math.random() * 8 + 7,
-    color: player.phoenix.glow,
-    life: 20
+function updateTrail() {
+  trail.push({
+    x: player.x + 15,
+    y: player.y + player.h * 0.64,
+    size: Math.random() * 7 + 5,
+    life: 20,
+    color: player.phoenix.glow
   });
 
-  if (trails.length > 45) trails.shift();
-
-  for (const trail of trails) {
-    trail.x -= 1.25;
-    trail.y += (Math.random() - 0.5) * 0.8;
-    trail.life--;
+  if (trail.length > 34) {
+    trail.shift();
   }
 
-  trails = trails.filter(trail => trail.life > 0);
-}
-
-function updateParticles() {
-  for (const particle of particles) {
-    particle.x += particle.vx;
-    particle.y += particle.vy;
-    particle.vy += particle.gravity;
-    particle.life--;
-    particle.size *= 0.985;
+  for (const bit of trail) {
+    bit.x -= 1.15;
+    bit.life--;
   }
 
-  particles = particles.filter(particle => particle.life > 0);
+  trail = trail.filter(bit => bit.life > 0);
 }
 
 function addParticles(x, y, color, amount = 12, force = 2.5) {
@@ -1055,223 +928,222 @@ function addParticles(x, y, color, amount = 12, force = 2.5) {
       y,
       vx: Math.cos(angle) * power,
       vy: Math.sin(angle) * power,
-      gravity: 0.03,
-      size: Math.random() * 5 + 2,
-      color,
-      life: Math.random() * 30 + 22
+      gravity: 0.035,
+      size: Math.random() * 4 + 1.8,
+      life: Math.random() * 28 + 20,
+      color
     });
   }
 }
 
-function spawnObstacle() {
-  const zone = currentZone;
-  const topSource = randomFrom(imageSources[zone].top);
-  const bottomSource = randomFrom(imageSources[zone].bottom);
+function updateParticles() {
+  for (const particle of particles) {
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+    particle.vy += particle.gravity;
+    particle.life--;
+    particle.size *= 0.986;
+  }
 
-  const gapBase = Math.max(186, 245 - distance / 90);
-  const gap = gapBase + Math.random() * 28;
-  const topHeight = 86 + Math.random() * (H - 260 - gap);
+  particles = particles.filter(particle => particle.life > 0);
+}
+
+function spawnObstacle() {
+  const topFiles =
+    zone === "azure"
+      ? files.azureTop
+      : zone === "verdant"
+        ? files.verdantTop
+        : files.emberTop;
+
+  const bottomFiles =
+    zone === "azure"
+      ? files.azureBottom
+      : zone === "verdant"
+        ? files.verdantBottom
+        : files.emberBottom;
+
+  const gap = Math.max(192, 252 - distance / 105);
+  const safeTop = 88;
+  const safeBottom = LOGICAL_H - 158;
+  const topHeight =
+    safeTop + Math.random() * (safeBottom - safeTop - gap);
 
   obstacles.push({
-    x: W + 30,
-    width: 104,
+    x: LOGICAL_W + 38,
+    width: 112,
     topHeight,
     bottomY: topHeight + gap,
-    topImage: loadedImages[topSource],
-    bottomImage: loadedImages[bottomSource],
+    topArt: art[randomItem(topFiles)],
+    bottomArt: art[randomItem(bottomFiles)],
     zone,
-    shardTaken: false,
-    passed: false,
-    pushed: false
+    shardCollected: false,
+    passed: false
   });
 }
 
-function updateObstacles(speed) {
+function updateObstacles(currentSpeed) {
   for (const obstacle of obstacles) {
-    let obstacleSpeed = speed;
+    let obstacleSpeed = currentSpeed;
 
-    if (windFrames > 0) {
-      obstacleSpeed *= 1.75;
-      obstacle.pushed = true;
+    if (windTimer > 0) {
+      obstacleSpeed *= 1.68;
     }
 
     obstacle.x -= obstacleSpeed;
 
-    const shardX = obstacle.x + obstacle.width * 0.5;
+    const shardX = obstacle.x + obstacle.width * 0.52;
     const shardY = (obstacle.topHeight + obstacle.bottomY) * 0.5;
 
-    if (!obstacle.shardTaken) {
-      const dx = player.x + player.width * 0.5 - shardX;
-      const dy = player.y + player.height * 0.5 - shardY;
+    if (!obstacle.shardCollected) {
+      const playerCenterX = player.x + player.w * 0.5;
+      const playerCenterY = player.y + player.h * 0.5;
 
-      if (Math.hypot(dx, dy) < 48) {
-        obstacle.shardTaken = true;
-        shardsEarned += 1;
-        addParticles(shardX, shardY, "#ffd15c", 15, 3.2);
+      if (Math.hypot(playerCenterX - shardX, playerCenterY - shardY) < 44) {
+        obstacle.shardCollected = true;
+        runShards += 1;
+        addParticles(shardX, shardY, "#ffd15c", 14, 3.1);
       }
     }
 
     if (!obstacle.passed && obstacle.x + obstacle.width < player.x) {
       obstacle.passed = true;
-      shardsEarned += 1;
+      runShards += 1;
+
       addParticles(
-        player.x,
-        player.y + 35,
+        player.x + 14,
+        player.y + player.h * 0.55,
         player.phoenix.glow,
-        8,
-        1.8
+        7,
+        1.7
       );
     }
 
-    if (
-      invincibleFrames <= 0 &&
-      checkObstacleCollision(obstacle)
-    ) {
-      if (shieldFrames > 0) {
-        shieldFrames = 0;
-        invincibleFrames = 42;
-        obstacle.x -= 25;
+    if (invincibleTimer <= 0 && hitsObstacle(obstacle)) {
+      if (shieldTimer > 0) {
+        shieldTimer = 0;
+        invincibleTimer = 44;
+        obstacle.x -= 32;
+
         addParticles(
-          player.x + 30,
-          player.y + 30,
+          player.x + player.w * 0.5,
+          player.y + player.h * 0.5,
           "#ffd15c",
           32,
           4.8
         );
-        showGameTip("<strong>Flame Shield</strong> saved you!", 1500);
+
+        showTip("<strong>Flame Shield</strong> saved your Phoenix!", 1600);
       } else {
         crash();
+        return;
       }
     }
   }
 
-  obstacles = obstacles.filter(obstacle => obstacle.x > -150);
+  obstacles = obstacles.filter(obstacle => obstacle.x > -155);
 }
 
-function checkObstacleCollision(obstacle) {
-  const px = player.x + 15;
-  const py = player.y + 15;
-  const pw = player.width - 30;
-  const ph = player.height - 26;
+function hitsObstacle(obstacle) {
+  const left = player.x + 17;
+  const right = player.x + player.w - 17;
+  const top = player.y + 14;
+  const bottom = player.y + player.h - 17;
 
-  const obstacleLeft = obstacle.x + 13;
-  const obstacleRight = obstacle.x + obstacle.width - 13;
+  const rockLeft = obstacle.x + 13;
+  const rockRight = obstacle.x + obstacle.width - 13;
 
-  const hitTop =
-    px + pw > obstacleLeft &&
-    px < obstacleRight &&
-    py < obstacle.topHeight - 4;
+  const overlapsX = right > rockLeft && left < rockRight;
 
-  const hitBottom =
-    px + pw > obstacleLeft &&
-    px < obstacleRight &&
-    py + ph > obstacle.bottomY + 4;
+  if (!overlapsX) return false;
 
-  return hitTop || hitBottom;
+  return top < obstacle.topHeight || bottom > obstacle.bottomY;
 }
-function drawGame() {
-  drawBackground();
+
+function render() {
+  const style = zoneStyle(zone);
+
+  drawSky(style);
   drawStars();
-  drawZoneScenery();
+  drawMountains(style);
   drawObstacles();
-  drawTrails();
+  drawTrail();
   drawPlayer();
   drawParticles();
-  drawHud();
+  drawHud(style);
 }
 
-function drawBackground() {
-  const zone = zoneData(currentZone);
+function drawSky(style) {
+  const gradient = ctx.createLinearGradient(0, 0, 0, LOGICAL_H);
+  gradient.addColorStop(0, style.top);
+  gradient.addColorStop(0.62, style.bottom);
+  gradient.addColorStop(1, "#050710");
 
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, zone.skyTop);
-  sky.addColorStop(0.58, zone.skyBottom);
-  sky.addColorStop(1, "#050711");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
 
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-
-  const glow = ctx.createRadialGradient(
-    W * 0.68,
-    H * 0.27,
-    5,
-    W * 0.68,
-    H * 0.27,
-    270
+  const aura = ctx.createRadialGradient(
+    LOGICAL_W * 0.7,
+    LOGICAL_H * 0.28,
+    3,
+    LOGICAL_W * 0.7,
+    LOGICAL_H * 0.28,
+    245
   );
 
-  glow.addColorStop(0, hexToRgba(zone.accent, 0.22));
-  glow.addColorStop(0.5, hexToRgba(zone.mist, 0.06));
-  glow.addColorStop(1, "rgba(0,0,0,0)");
+  aura.addColorStop(0, colorAlpha(style.glow, 0.18));
+  aura.addColorStop(0.56, colorAlpha(style.glow, 0.035));
+  aura.addColorStop(1, "rgba(0,0,0,0)");
 
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
-
-  const bottomGlow = ctx.createLinearGradient(0, H * 0.72, 0, H);
-  bottomGlow.addColorStop(0, "rgba(0,0,0,0)");
-  bottomGlow.addColorStop(1, hexToRgba(zone.ground, 0.8));
-
-  ctx.fillStyle = bottomGlow;
-  ctx.fillRect(0, H * 0.72, W, H * 0.28);
+  ctx.fillStyle = aura;
+  ctx.fillRect(0, 0, LOGICAL_W, LOGICAL_H);
 }
 
 function drawStars() {
   for (const star of stars) {
     ctx.save();
     ctx.globalAlpha = star.alpha;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#fffdf4";
+
     ctx.beginPath();
     ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
     ctx.fill();
+
     ctx.restore();
   }
 }
 
-function drawZoneScenery() {
-  const zone = zoneData(currentZone);
-
+function drawMountains(style) {
   ctx.save();
 
   for (let i = 0; i < 7; i++) {
-    const x = ((i * 89 - distance * 0.16) % (W + 130)) - 60;
-    const height = 55 + ((i * 29) % 100);
+    const x =
+      ((i * 96 - distance * 0.18) % (LOGICAL_W + 120)) - 60;
 
-    ctx.globalAlpha = 0.14;
-    ctx.fillStyle = zone.mist;
+    const height = 60 + ((i * 37) % 94);
+
+    ctx.globalAlpha = 0.17;
+    ctx.fillStyle = style.rock;
 
     ctx.beginPath();
-    ctx.moveTo(x, H - 76);
-    ctx.lineTo(x + 34, H - 76 - height);
-    ctx.lineTo(x + 74, H - 76);
+    ctx.moveTo(x, LOGICAL_H - 62);
+    ctx.lineTo(x + 38, LOGICAL_H - 62 - height);
+    ctx.lineTo(x + 83, LOGICAL_H - 62);
     ctx.closePath();
     ctx.fill();
   }
 
-  ctx.globalAlpha = 0.32;
-  ctx.fillStyle = zone.ground;
-  ctx.fillRect(0, H - 64, W, 64);
-
-  ctx.globalAlpha = 0.66;
-  ctx.strokeStyle = zone.accent;
-  ctx.lineWidth = 2;
-
-  for (let i = 0; i < 6; i++) {
-    const x = ((i * 104 - distance * 0.42) % (W + 80)) - 30;
-
-    ctx.beginPath();
-    ctx.moveTo(x, H - 62);
-    ctx.lineTo(x + 24, H - 78);
-    ctx.lineTo(x + 52, H - 62);
-    ctx.stroke();
-  }
+  ctx.globalAlpha = 0.58;
+  ctx.fillStyle = colorAlpha(style.rock, 0.55);
+  ctx.fillRect(0, LOGICAL_H - 58, LOGICAL_W, 58);
 
   ctx.restore();
 }
 
 function drawObstacles() {
   for (const obstacle of obstacles) {
-    drawObstaclePart(
-      obstacle.topImage,
+    drawRock(
+      obstacle.topArt,
       obstacle.x,
       0,
       obstacle.width,
@@ -1280,72 +1152,88 @@ function drawObstacles() {
       obstacle.zone
     );
 
-    drawObstaclePart(
-      obstacle.bottomImage,
+    drawRock(
+      obstacle.bottomArt,
       obstacle.x,
       obstacle.bottomY,
       obstacle.width,
-      H - obstacle.bottomY + 30,
+      LOGICAL_H - obstacle.bottomY + 24,
       false,
       obstacle.zone
     );
 
-    if (!obstacle.shardTaken) {
+    if (!obstacle.shardCollected) {
       drawShard(
-        obstacle.x + obstacle.width * 0.5,
+        obstacle.x + obstacle.width * 0.52,
         (obstacle.topHeight + obstacle.bottomY) * 0.5
       );
     }
   }
 }
 
-function drawObstaclePart(image, x, y, width, height, upsideDown, zone) {
-  const data = zoneData(zone);
+function drawRock(image, x, y, width, height, upsideDown, zoneName) {
+  const style = zoneStyle(zoneName);
 
   ctx.save();
-
-  ctx.shadowColor = data.accent;
-  ctx.shadowBlur = 14;
+  ctx.shadowColor = colorAlpha(style.glow, 0.42);
+  ctx.shadowBlur = 10;
 
   if (image) {
+    const ratio = image.width / image.height;
+    let drawWidth = width;
+    let drawHeight = drawWidth / ratio;
+
+    if (drawHeight < height) {
+      drawHeight = height;
+      drawWidth = drawHeight * ratio;
+    }
+
+    const drawX = x + (width - drawWidth) * 0.5;
+    const drawY = upsideDown ? y + height - drawHeight : y;
+
     if (upsideDown) {
-      ctx.translate(x + width / 2, y + height / 2);
+      ctx.translate(drawX + drawWidth * 0.5, drawY + drawHeight * 0.5);
       ctx.scale(1, -1);
-      ctx.drawImage(image, -width / 2, -height / 2, width, height);
+      ctx.drawImage(
+        image,
+        -drawWidth * 0.5,
+        -drawHeight * 0.5,
+        drawWidth,
+        drawHeight
+      );
     } else {
-      ctx.drawImage(image, x, y, width, height);
+      ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
     }
   } else {
-    drawFallbackRock(x, y, width, height, upsideDown, zone);
+    drawFallbackRock(x, y, width, height, upsideDown, style);
   }
 
   ctx.restore();
 }
 
-function drawFallbackRock(x, y, width, height, upsideDown, zone) {
-  const data = zoneData(zone);
-
+function drawFallbackRock(x, y, width, height, upsideDown, style) {
   ctx.save();
 
   if (upsideDown) {
-    ctx.translate(x + width / 2, y + height / 2);
+    ctx.translate(x + width * 0.5, y + height * 0.5);
     ctx.scale(1, -1);
-    x = -width / 2;
-    y = -height / 2;
+    x = -width * 0.5;
+    y = -height * 0.5;
   }
 
-  const rock = ctx.createLinearGradient(x, y, x + width, y + height);
-  rock.addColorStop(0, data.accent);
-  rock.addColorStop(0.25, data.ground);
-  rock.addColorStop(1, "#090810");
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, style.glow);
+  gradient.addColorStop(0.25, style.rock);
+  gradient.addColorStop(1, "#090910");
 
-  ctx.fillStyle = rock;
+  ctx.fillStyle = gradient;
+
   ctx.beginPath();
   ctx.moveTo(x, y);
   ctx.lineTo(x + width, y);
-  ctx.lineTo(x + width * 0.87, y + height * 0.55);
-  ctx.lineTo(x + width * 0.66, y + height);
-  ctx.lineTo(x + width * 0.37, y + height * 0.82);
+  ctx.lineTo(x + width * 0.86, y + height * 0.55);
+  ctx.lineTo(x + width * 0.61, y + height);
+  ctx.lineTo(x + width * 0.3, y + height * 0.78);
   ctx.lineTo(x, y + height);
   ctx.closePath();
   ctx.fill();
@@ -1354,38 +1242,36 @@ function drawFallbackRock(x, y, width, height, upsideDown, zone) {
 }
 
 function drawShard(x, y) {
+  const pulse = 1 + Math.sin(Date.now() * 0.008 + x) * 0.1;
+
   ctx.save();
-
-  const pulse = 1 + Math.sin(Date.now() * 0.008 + x) * 0.13;
-
   ctx.translate(x, y);
   ctx.rotate(Math.PI / 4);
   ctx.scale(pulse, pulse);
 
-  ctx.shadowColor = "#ff8e2e";
-  ctx.shadowBlur = 19;
   ctx.fillStyle = "#ffd15c";
+  ctx.shadowColor = "#ff842e";
+  ctx.shadowBlur = 17;
+  ctx.fillRect(-9, -9, 18, 18);
 
-  ctx.fillRect(-10, -10, 20, 20);
-
-  ctx.fillStyle = "#fff5bd";
-  ctx.fillRect(-4, -7, 8, 8);
+  ctx.fillStyle = "#fff6bd";
+  ctx.fillRect(-3, -6, 6, 6);
 
   ctx.restore();
 }
 
-function drawTrails() {
-  for (const trail of trails) {
-    const alpha = Math.max(0, trail.life / 20);
+function drawTrail() {
+  for (const bit of trail) {
+    const alpha = Math.max(0, bit.life / 20);
 
     ctx.save();
-    ctx.globalAlpha = alpha * 0.42;
-    ctx.fillStyle = trail.color;
-    ctx.shadowColor = trail.color;
-    ctx.shadowBlur = 14;
+    ctx.globalAlpha = alpha * 0.36;
+    ctx.fillStyle = bit.color;
+    ctx.shadowColor = bit.color;
+    ctx.shadowBlur = 12;
 
     ctx.beginPath();
-    ctx.arc(trail.x, trail.y, trail.size * alpha, 0, Math.PI * 2);
+    ctx.arc(bit.x, bit.y, bit.size * alpha, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();
@@ -1395,33 +1281,31 @@ function drawTrails() {
 function drawPlayer() {
   if (!player) return;
 
-  const image = loadedImages[imageSources.phoenixes[player.phoenix.id]];
-  const centerX = player.x + player.width / 2;
-  const centerY = player.y + player.height / 2;
+  const image = art[files.phoenix[player.phoenix.id]];
+  const centerX = player.x + player.w * 0.5;
+  const centerY = player.y + player.h * 0.5;
 
   ctx.save();
-
   ctx.translate(centerX, centerY);
   ctx.rotate(player.rotation);
 
-  const flashing =
-    invincibleFrames > 0 &&
-    Math.floor(invincibleFrames / 5) % 2 === 0;
-
-  if (flashing) {
-    ctx.globalAlpha = 0.42;
+  if (
+    invincibleTimer > 0 &&
+    Math.floor(invincibleTimer / 5) % 2 === 0
+  ) {
+    ctx.globalAlpha = 0.46;
   }
 
   ctx.shadowColor = player.phoenix.glow;
-  ctx.shadowBlur = 25;
+  ctx.shadowBlur = 20;
 
   if (image) {
     ctx.drawImage(
       image,
-      -player.width / 2,
-      -player.height / 2,
-      player.width,
-      player.height
+      -player.w * 0.5,
+      -player.h * 0.5,
+      player.w,
+      player.h
     );
   } else {
     drawFallbackPhoenix(player.phoenix);
@@ -1429,30 +1313,28 @@ function drawPlayer() {
 
   ctx.restore();
 
-  if (shieldFrames > 0) {
+  if (shieldTimer > 0) {
     ctx.save();
-
     ctx.strokeStyle = "#ffd15c";
     ctx.lineWidth = 4;
-    ctx.shadowColor = "#ff8e2e";
-    ctx.shadowBlur = 23;
+    ctx.shadowColor = "#ff9a2d";
+    ctx.shadowBlur = 18;
 
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 46, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, 44, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
   }
 
-  if (invincibleFrames > 0 && shieldFrames <= 0) {
+  if (invincibleTimer > 0 && shieldTimer <= 0) {
     ctx.save();
-
     ctx.strokeStyle = player.phoenix.glow;
     ctx.lineWidth = 3;
     ctx.globalAlpha = 0.7;
 
     ctx.beginPath();
-    ctx.arc(centerX, centerY, 43, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, 42, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.restore();
@@ -1460,42 +1342,38 @@ function drawPlayer() {
 }
 
 function drawFallbackPhoenix(phoenix) {
-  ctx.save();
-
   ctx.fillStyle = phoenix.color;
+
   ctx.beginPath();
-  ctx.moveTo(-34, 4);
-  ctx.quadraticCurveTo(-2, -38, 31, -10);
-  ctx.quadraticCurveTo(46, 2, 22, 18);
-  ctx.quadraticCurveTo(-4, 33, -35, 16);
+  ctx.moveTo(-34, 3);
+  ctx.quadraticCurveTo(-4, -36, 31, -10);
+  ctx.quadraticCurveTo(46, 3, 20, 20);
+  ctx.quadraticCurveTo(-7, 33, -35, 15);
   ctx.closePath();
   ctx.fill();
 
   ctx.fillStyle = phoenix.glow;
+
   ctx.beginPath();
-  ctx.moveTo(-20, 14);
+  ctx.moveTo(-18, 14);
   ctx.lineTo(-46, 30);
-  ctx.lineTo(-24, -3);
+  ctx.lineTo(-23, -3);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(16, -5, 4, 0, Math.PI * 2);
+  ctx.arc(15, -5, 4, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.restore();
 }
 
 function drawParticles() {
   for (const particle of particles) {
-    const alpha = Math.max(0, particle.life / 52);
-
     ctx.save();
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = Math.max(0, particle.life / 48);
     ctx.fillStyle = particle.color;
     ctx.shadowColor = particle.color;
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 9;
 
     ctx.beginPath();
     ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
@@ -1505,250 +1383,310 @@ function drawParticles() {
   }
 }
 
-function drawHud() {
-  if (!gameRunning) return;
-
-  const zone = zoneData(currentZone);
+function drawHud(style) {
+  if (!running) return;
 
   ctx.save();
 
-  ctx.fillStyle = "rgba(4,7,16,.68)";
-  ctx.fillRect(0, 0, W, 76);
+  ctx.fillStyle = "rgba(3,6,15,.68)";
+  ctx.fillRect(0, 0, LOGICAL_W, 74);
 
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 27px Arial";
   ctx.textAlign = "left";
-  ctx.fillText(`${Math.floor(distance).toLocaleString()} m`, 18, 35);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 26px Arial";
+  ctx.fillText(`${Math.floor(distance).toLocaleString()} m`, 16, 33);
 
-  ctx.font = "bold 15px Arial";
   ctx.fillStyle = "#ffd15c";
-  ctx.fillText(`✦ ${shardsEarned}`, 20, 59);
+  ctx.font = "bold 15px Arial";
+  ctx.fillText(`✦ ${runShards}`, 18, 58);
 
   ctx.textAlign = "right";
-  ctx.fillStyle = zone.accent;
-  ctx.font = "bold 13px Arial";
-  ctx.fillText(zone.name, W - 17, 26);
+  ctx.fillStyle = style.glow;
+  ctx.font = "bold 12px Arial";
+  ctx.fillText(style.label, LOGICAL_W - 16, 25);
 
-  ctx.fillStyle = "#d7e9ff";
-  ctx.font = "13px Arial";
+  ctx.fillStyle = "#d7e8f6";
+  ctx.font = "12px Arial";
   ctx.fillText(
-    `Best ${Math.floor(saveData.bestDistance).toLocaleString()} m`,
-    W - 17,
-    51
+    `Best ${Math.floor(save.best).toLocaleString()} m`,
+    LOGICAL_W - 16,
+    49
   );
 
-  if (abilityCooldown > 0) {
+  if (abilityTimer > 0) {
     ctx.textAlign = "center";
-    ctx.font = "bold 14px Arial";
-    ctx.fillStyle = "#ffffff";
-
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 13px Arial";
     ctx.fillText(
-      `Ability ready in ${Math.ceil(abilityCooldown / 60)}s`,
-      W / 2,
-      H - 83
+      `Ability ready in ${Math.ceil(abilityTimer / 60)}s`,
+      LOGICAL_W * 0.5,
+      LOGICAL_H - 74
     );
   }
 
   ctx.restore();
 }
 
-function hexToRgba(hex, alpha) {
-  const value = hex.replace("#", "");
+function colorAlpha(hex, alpha) {
+  const clean = hex.replace("#", "");
 
-  const r = parseInt(value.substring(0, 2), 16);
-  const g = parseInt(value.substring(2, 4), 16);
-  const b = parseInt(value.substring(4, 6), 16);
+  const red = parseInt(clean.slice(0, 2), 16);
+  const green = parseInt(clean.slice(2, 4), 16);
+  const blue = parseInt(clean.slice(4, 6), 16);
 
-  return `rgba(${r},${g},${b},${alpha})`;
+  return `rgba(${red},${green},${blue},${alpha})`;
 }
 function useAbility() {
-  if (!gameRunning || pausedForRevive || abilityCooldown > 0) return;
+  if (!running || waitingForRevive || abilityTimer > 0 || !player) return;
 
   const phoenix = player.phoenix;
-
-  abilityCooldown = 660;
+  abilityTimer = 660;
 
   if (phoenix.id === "ember") {
-    shieldFrames = phoenix.duration;
-    addParticles(player.x + 38, player.y + 35, "#ffd15c", 34, 4.2);
-    showGameTip("<strong>Flame Shield!</strong><br>One collision is blocked.", 1900);
+    shieldTimer = 190;
+
+    addParticles(
+      player.x + player.w * 0.5,
+      player.y + player.h * 0.5,
+      "#ffd15c",
+      32,
+      4
+    );
+
+    showTip(
+      "<strong>FLAME SHIELD!</strong><br>Blocks one collision.",
+      1900
+    );
   }
 
   if (phoenix.id === "azure") {
-    slowFrames = phoenix.duration;
-    addParticles(player.x + 38, player.y + 35, "#67e7ff", 30, 3.8);
-    showGameTip("<strong>Sky Surge!</strong><br>The world slows down.", 1900);
+    slowTimer = 240;
+
+    addParticles(
+      player.x + player.w * 0.5,
+      player.y + player.h * 0.5,
+      "#69e9ff",
+      30,
+      3.8
+    );
+
+    showTip(
+      "<strong>SKY SURGE!</strong><br>The trail slows down.",
+      1900
+    );
   }
 
   if (phoenix.id === "verdant") {
-    windFrames = phoenix.duration;
+    windTimer = 185;
 
     for (const obstacle of obstacles) {
-      if (obstacle.x > player.x - 40 && obstacle.x < W + 80) {
-        obstacle.x += 80;
+      if (
+        obstacle.x > player.x - 30 &&
+        obstacle.x < LOGICAL_W + 80
+      ) {
+        obstacle.x += 88;
       }
     }
 
-    addParticles(player.x + 38, player.y + 35, "#8cff9d", 34, 4.4);
-    showGameTip("<strong>Wildwind!</strong><br>Obstacles are blown away.", 1900);
+    addParticles(
+      player.x + player.w * 0.5,
+      player.y + player.h * 0.5,
+      "#88f29f",
+      34,
+      4.2
+    );
+
+    showTip(
+      "<strong>WILDWIND!</strong><br>Pushes obstacles away.",
+      1900
+    );
   }
 
   if (phoenix.id === "violet") {
-    invincibleFrames = phoenix.duration;
-    addParticles(player.x + 38, player.y + 35, "#d798ff", 34, 4.2);
-    showGameTip("<strong>Star Veil!</strong><br>You are invulnerable.", 1900);
+    invincibleTimer = 190;
+
+    addParticles(
+      player.x + player.w * 0.5,
+      player.y + player.h * 0.5,
+      "#e1a1ff",
+      32,
+      4.1
+    );
+
+    showTip(
+      "<strong>STAR VEIL!</strong><br>You cannot be hit.",
+      1900
+    );
   }
 
   if (phoenix.id === "solar") {
-    dashFrames = phoenix.duration;
-    invincibleFrames = phoenix.duration;
-    shardsEarned += 4;
+    dashTimer = 82;
+    invincibleTimer = 82;
+    runShards += 4;
 
     for (const obstacle of obstacles) {
-      if (obstacle.x > player.x - 40 && obstacle.x < W + 60) {
-        obstacle.x += 116;
+      if (
+        obstacle.x > player.x - 30 &&
+        obstacle.x < LOGICAL_W + 80
+      ) {
+        obstacle.x += 120;
       }
     }
 
-    addParticles(player.x + 38, player.y + 35, "#ffd15c", 42, 5);
-    showGameTip("<strong>Solar Dash!</strong><br>+4 Ember Shards", 1900);
+    addParticles(
+      player.x + player.w * 0.5,
+      player.y + player.h * 0.5,
+      "#ffd15c",
+      40,
+      5
+    );
+
+    showTip(
+      "<strong>SOLAR DASH!</strong><br>+4 Ember Shards",
+      1900
+    );
   }
 
   updateAbilityButton();
 }
 
 function updateAbilityButton() {
-  if (!gameRunning) return;
-
-  const phoenix = player.phoenix;
+  if (!running || !player) return;
 
   abilityButton.textContent =
-    abilityCooldown > 0
-      ? `${Math.ceil(abilityCooldown / 60)}s`
-      : phoenix.abilityLabel;
+    abilityTimer > 0
+      ? `${Math.ceil(abilityTimer / 60)}s`
+      : player.phoenix.label;
 
   abilityButton.style.opacity =
-    abilityCooldown > 0 ? "0.58" : "1";
+    abilityTimer > 0 ? "0.56" : "1";
 
   abilityButton.style.transform =
-    abilityCooldown > 0 ? "scale(.9)" : "scale(1)";
+    abilityTimer > 0 ? "scale(.91)" : "scale(1)";
 }
 
 function crash() {
-  if (!gameRunning || pausedForRevive || invincibleFrames > 0) return;
-
-  holding = false;
+  if (!running || waitingForRevive || invincibleTimer > 0) return;
 
   addParticles(
-    player.x + player.width / 2,
-    player.y + player.height / 2,
+    player.x + player.w * 0.5,
+    player.y + player.h * 0.5,
     player.phoenix.glow,
-    46,
-    5.4
+    44,
+    5.3
   );
 
-  if (!usedRevive && saveData.shards >= 15 && checkpointDistance > 0) {
-    pausedForRevive = true;
+  if (!revivedThisRun && checkpoint > 0 && save.shards >= 15) {
+    waitingForRevive = true;
     abilityButton.classList.add("hidden");
 
     document.getElementById("reviveText").innerHTML =
       `You reached <strong>${Math.floor(distance).toLocaleString()} m</strong>.<br>` +
-      `Revive at the ${checkpointDistance.toLocaleString()} m checkpoint for 15 Ember Shards?`;
+      `Return to the ${checkpoint.toLocaleString()} m checkpoint for 15 Ember Shards?`;
 
-    reviveScreen.classList.remove("hidden");
+    revive.classList.remove("hidden");
     return;
   }
 
-  endFlight();
+  finishFlight();
 }
 
 function reviveFlight() {
-  if (!pausedForRevive || saveData.shards < 15) {
-    endFlight();
+  if (!waitingForRevive || save.shards < 15) {
+    finishFlight();
     return;
   }
 
-  saveData.shards -= 15;
-  usedRevive = true;
-  distance = checkpointDistance;
-  player.y = H * 0.44;
-  player.velocityY = -1;
+  save.shards -= 15;
+  storeSave();
+
+  revivedThisRun = true;
+  waitingForRevive = false;
+
+  distance = checkpoint;
+  player.y = LOGICAL_H * 0.43;
+  player.velocity = -1.1;
   player.rotation = 0;
-  invincibleFrames = 180;
-  shieldFrames = 0;
-  obstacles = obstacles.filter(obstacle => obstacle.x > player.x + 95);
 
-  if (obstacles.length < 2) {
-    spawnTimer = 48;
-  }
+  invincibleTimer = 180;
+  shieldTimer = 0;
 
-  pausedForRevive = false;
-  reviveScreen.classList.add("hidden");
+  obstacles = obstacles.filter(
+    obstacle => obstacle.x > player.x + 105
+  );
+
+  spawnTimer = Math.min(spawnTimer, 48);
+
+  revive.classList.add("hidden");
   abilityButton.classList.remove("hidden");
 
-  addParticles(player.x + 35, player.y + 35, "#67e7ff", 38, 4.7);
-  showGameTip(
-    `<strong>REVIVED!</strong><br>Checkpoint: ${checkpointDistance.toLocaleString()} m`,
+  addParticles(
+    player.x + player.w * 0.5,
+    player.y + player.h * 0.5,
+    "#69e9ff",
+    38,
+    4.8
+  );
+
+  showTip(
+    `<strong>REVIVED!</strong><br>${checkpoint.toLocaleString()} m checkpoint`,
     2200
   );
 
-  saveGame();
-  updateMenuText();
+  updateMenu();
 }
 
-function endFlight() {
-  if (!gameRunning && !pausedForRevive) return;
+function finishFlight() {
+  if (!running && !waitingForRevive) return;
 
-  const finishedDistance = Math.floor(distance);
-  const gainedShards = Math.max(0, Math.floor(shardsEarned));
+  const finalDistance = Math.floor(distance);
+  const gainedShards = Math.max(0, Math.floor(runShards));
 
-  saveData.shards += gainedShards;
-  saveData.bestDistance = Math.max(saveData.bestDistance, finishedDistance);
+  save.shards += gainedShards;
+  save.best = Math.max(save.best, finalDistance);
 
-  addLeaderboardEntry(
-    finishedDistance,
-    gainedShards,
-    player ? player.phoenix.id : saveData.equipped
-  );
+  addScore(finalDistance, gainedShards, player?.phoenix.id || save.equipped);
 
-  saveGame();
-  updateMenuText();
+  storeSave();
+  updateMenu();
 
-  reviveScreen.classList.add("hidden");
+  running = false;
+  waitingForRevive = false;
 
-  stopGame();
+  cancelAnimationFrame(animationId);
+
+  revive.classList.add("hidden");
+  abilityButton.classList.add("hidden");
+  hideTip();
 
   menu.classList.remove("hidden");
 
-  document.getElementById("bestText").innerHTML =
-    `Flight: <strong>${finishedDistance.toLocaleString()} m</strong><br>` +
+  document.getElementById("menuStatus").innerHTML =
+    `Flight: <strong>${finalDistance.toLocaleString()} m</strong><br>` +
     `Shards collected: <strong>+${gainedShards}</strong><br>` +
-    `Best flight: <strong>${Math.floor(saveData.bestDistance).toLocaleString()} m</strong><br>` +
-    `Ember Shards: <strong>${saveData.shards}</strong>` +
-    (newBestThisRun
-      ? `<br><span style="color:#ffd15c">New personal best!</span>`
-      : "");
+    `Best flight: <strong>${Math.floor(save.best).toLocaleString()} m</strong><br>` +
+    `Ember Shards: <strong>${save.shards}</strong>`;
 }
 
-function addLeaderboardEntry(distanceValue, shardValue, phoenixId) {
+function addScore(distanceValue, shardValue, phoenixId) {
   if (distanceValue < 1) return;
 
-  leaderboardData.push({
+  highScores.push({
     distance: distanceValue,
     shards: shardValue,
     phoenix: phoenixId,
     date: new Date().toLocaleDateString()
   });
 
-  leaderboardData.sort((a, b) => b.distance - a.distance);
-  leaderboardData = leaderboardData.slice(0, 10);
+  highScores.sort((first, second) => second.distance - first.distance);
+  highScores = highScores.slice(0, 10);
 
-  saveLeaderboard();
+  storeScores();
 }
 
 function openRoost() {
   menu.classList.add("hidden");
-  leaderboardScreen.classList.add("hidden");
+  scores.classList.add("hidden");
   roost.classList.remove("hidden");
 
   renderRoost();
@@ -1757,20 +1695,20 @@ function openRoost() {
 function closeRoost() {
   roost.classList.add("hidden");
   menu.classList.remove("hidden");
-  updateMenuText();
+  updateMenu();
 }
 
 function renderRoost() {
-  const list = document.getElementById("phoenixList");
+  const list = document.getElementById("roostList");
 
   document.getElementById("roostShards").textContent =
-    `Ember Shards: ${saveData.shards}`;
+    `Ember Shards: ${save.shards}`;
 
   list.innerHTML = "";
 
   for (const phoenix of phoenixes) {
-    const owned = saveData.owned.includes(phoenix.id);
-    const equipped = saveData.equipped === phoenix.id;
+    const owned = save.owned.includes(phoenix.id);
+    const equipped = save.equipped === phoenix.id;
 
     const card = document.createElement("div");
     card.className = `card${equipped ? " equipped" : ""}`;
@@ -1785,25 +1723,28 @@ function renderRoost() {
       ? "Equipped"
       : owned
         ? "Equip Phoenix"
-        : `Unlock for ${phoenix.price}`;
+        : `Unlock for ${phoenix.price} Shards`;
 
     card.innerHTML = `
-      <div>
-        <span class="preview" style="background:${phoenix.color};box-shadow:0 0 13px ${phoenix.glow};"></span>
-        <strong>${phoenix.name}</strong>
+      <div class="card-head">
+        <div class="card-name">
+          <span
+            class="dot"
+            style="background:${phoenix.color};box-shadow:0 0 14px ${phoenix.glow};"
+          ></span>
+          ${phoenix.name}
+        </div>
+
+        <div class="card-state">${status}</div>
       </div>
 
-      <div style="margin-top:7px;color:#d4dce4;font-size:14px;">
-        ${phoenix.ability}: ${phoenix.abilityDescription}
-      </div>
-
-      <div style="margin-top:8px;color:${equipped ? "#ffd15c" : "#a8dfff"};font-size:14px;font-weight:bold;">
-        ${status}
+      <div class="card-detail">
+        <strong>${phoenix.ability}</strong> is ready in every flight.
       </div>
 
       <button
         ${equipped ? "disabled" : ""}
-        onclick="selectPhoenix('${phoenix.id}')"
+        onclick="choosePhoenix('${phoenix.id}')"
       >
         ${action}
       </button>
@@ -1813,49 +1754,48 @@ function renderRoost() {
   }
 }
 
-function selectPhoenix(id) {
-  const phoenix = getPhoenix(id);
-  const owned = saveData.owned.includes(id);
+function choosePhoenix(id) {
+  const phoenix = phoenixById(id);
 
-  if (!owned) {
-    if (saveData.shards < phoenix.price) {
-      showGameTip(
-        `You need <strong>${phoenix.price - saveData.shards}</strong> more Ember Shards.`,
+  if (!save.owned.includes(id)) {
+    if (save.shards < phoenix.price) {
+      showTip(
+        `You need <strong>${phoenix.price - save.shards}</strong> more Ember Shards.`,
         2200
       );
       return;
     }
 
-    saveData.shards -= phoenix.price;
-    saveData.owned.push(id);
+    save.shards -= phoenix.price;
+    save.owned.push(id);
   }
 
-  saveData.equipped = id;
-  saveGame();
+  save.equipped = id;
 
+  storeSave();
   renderRoost();
-  updateMenuText();
+  updateMenu();
 }
 
-function openLeaderboard() {
+function openScores() {
   menu.classList.add("hidden");
   roost.classList.add("hidden");
-  leaderboardScreen.classList.remove("hidden");
+  scores.classList.remove("hidden");
 
-  renderLeaderboard();
+  renderScores();
 }
 
-function closeLeaderboard() {
-  leaderboardScreen.classList.add("hidden");
+function closeScores() {
+  scores.classList.add("hidden");
   menu.classList.remove("hidden");
 }
 
-function renderLeaderboard() {
-  const list = document.getElementById("leaderboardList");
+function renderScores() {
+  const list = document.getElementById("scoreList");
 
-  if (!leaderboardData.length) {
+  if (!highScores.length) {
     list.innerHTML = `
-      <div class="leaderboard-empty">
+      <div class="empty">
         No completed flights yet.<br>
         Start an Endless Flight to set your first record.
       </div>
@@ -1865,27 +1805,30 @@ function renderLeaderboard() {
 
   list.innerHTML = "";
 
-  leaderboardData.forEach((entry, index) => {
-    const phoenix = getPhoenix(entry.phoenix);
+  highScores.forEach((entry, index) => {
+    const phoenix = phoenixById(entry.phoenix);
     const row = document.createElement("div");
 
     row.className =
-      `leaderboard-row${index === 0 ? " first" : ""}`;
+      `score-row${index === 0 ? " top" : ""}`;
 
     row.innerHTML = `
-      <div class="leaderboard-rank">#${index + 1}</div>
+      <div class="rank">#${index + 1}</div>
 
       <div>
-        <div class="leaderboard-distance">
+        <div class="score-distance">
           ${entry.distance.toLocaleString()} m
         </div>
 
-        <div class="leaderboard-detail">
+        <div class="score-detail">
           +${entry.shards} shards · ${entry.date || "Saved flight"}
         </div>
       </div>
 
-      <div class="leaderboard-phoenix" style="color:${phoenix.glow};">
+      <div
+        class="score-phoenix"
+        style="color:${phoenix.glow};"
+      >
         ${phoenix.name.replace(" Phoenix", "")}
       </div>
     `;
@@ -1894,187 +1837,58 @@ function renderLeaderboard() {
   });
 }
 
-function openTutorial(fromGame = false) {
-  tutorialIndex = 0;
-  tutorialScreen.dataset.fromGame = fromGame ? "true" : "false";
-
-  tutorialScreen.classList.remove("hidden");
-  renderTutorialStep();
-}
-
-function nextTutorialStep() {
-  tutorialIndex++;
-
-  if (tutorialIndex >= tutorialSteps.length) {
-    finishTutorial();
-    return;
-  }
-
-  renderTutorialStep();
-}
-
-function skipTutorial() {
-  finishTutorial();
-}
-
-function finishTutorial() {
-  saveData.tutorialSeen = true;
-  saveGame();
-
-  tutorialScreen.classList.add("hidden");
-
-  if (tutorialScreen.dataset.fromGame === "true") {
-    showGameTip(
-      "Hold to <strong>rise</strong>. Release to <strong>glide</strong>.",
-      3200
-    );
-  } else {
-    menu.classList.remove("hidden");
-  }
-}
-
-const tutorialSteps = [
-  {
-    title: "FLY",
-    text: "Hold anywhere on the screen to rise. Release your finger to glide downward.",
-    art: `
-      <div class="tutorial-bird"></div>
-      <div class="tutorial-finger">HOLD</div>
-    `
-  },
-
-  {
-    title: "COLLECT",
-    text: "Fly through the center gaps. Touch glowing Ember Shards to collect them.",
-    art: `
-      <div class="tutorial-bird" style="top:26px;left:44px;"></div>
-      <div class="tutorial-shard"></div>
-    `
-  },
-
-  {
-    title: "CHECKPOINTS",
-    text: "Every 1,000 meters is a checkpoint. After a crash, revive with Ember Shards.",
-    art: `
-      <div class="tutorial-bird" style="top:30px;left:52px;"></div>
-      <div class="tutorial-gate"></div>
-    `
-  },
-
-  {
-    title: "PHOENIX POWERS",
-    text: "Tap your Phoenix ability button when the trail gets dangerous. Each Phoenix has a unique power.",
-    art: `
-      <div class="tutorial-bird" style="top:24px;left:40px;"></div>
-      <div class="tutorial-ability">ABILITY</div>
-    `
-  }
-];
-
-function renderTutorialStep() {
-  const step = tutorialSteps[tutorialIndex];
-
-  document.getElementById("tutorialStep").textContent =
-    `STEP ${tutorialIndex + 1} OF ${tutorialSteps.length}`;
-
-  document.getElementById("tutorialTitle").textContent = step.title;
-  document.getElementById("tutorialText").textContent = step.text;
-  document.getElementById("tutorialArt").innerHTML = step.art;
-
-  document.getElementById("tutorialNext").textContent =
-    tutorialIndex === tutorialSteps.length - 1
-      ? "Start Flying"
-      : "Next";
-}
-
-function beginHold(event) {
-  if (!gameRunning || pausedForRevive) return;
-
-  if (event && event.target === abilityButton) return;
-
-  holding = true;
-
-  if (event && canvas.setPointerCapture) {
-    try {
-      canvas.setPointerCapture(event.pointerId);
-    } catch {}
-  }
-}
-
-function endHold() {
-  holding = false;
-}
-
-canvas.addEventListener("pointerdown", event => {
+function onCanvasTap(event) {
   event.preventDefault();
-  beginHold(event);
+  flap();
+}
+
+canvas.addEventListener("pointerdown", onCanvasTap, {
+  passive: false
 });
 
-canvas.addEventListener("pointerup", event => {
+canvas.addEventListener("touchstart", event => {
   event.preventDefault();
-  endHold();
+}, {
+  passive: false
 });
-
-canvas.addEventListener("pointercancel", endHold);
-canvas.addEventListener("pointerleave", endHold);
-
-window.addEventListener("pointerup", endHold);
 
 abilityButton.addEventListener("pointerdown", event => {
   event.stopPropagation();
 });
 
 window.addEventListener("keydown", event => {
-  if (event.code === "Space" || event.code === "ArrowUp") {
+  if (
+    (event.code === "Space" || event.code === "ArrowUp") &&
+    !event.repeat
+  ) {
     event.preventDefault();
-    holding = true;
+    flap();
   }
 
   if (event.code === "KeyE") {
     useAbility();
   }
 });
-
-window.addEventListener("keyup", event => {
-  if (event.code === "Space" || event.code === "ArrowUp") {
-    holding = false;
-  }
-});
-
-window.addEventListener("blur", () => {
-  holding = false;
-});
-
-loadAllImages();
-updateMenuText();
-function showStartupScreen() {
-  menu.classList.remove("hidden");
+function showMenu() {
+  loading.classList.add("hidden");
+  revive.classList.add("hidden");
   roost.classList.add("hidden");
-  reviveScreen.classList.add("hidden");
-  tutorialScreen.classList.add("hidden");
-  leaderboardScreen.classList.add("hidden");
+  scores.classList.add("hidden");
 
   abilityButton.classList.add("hidden");
-  gameTip.classList.add("hidden");
+  hideTip();
 
-  updateMenuText();
+  menu.classList.remove("hidden");
+  updateMenu();
 }
 
 window.addEventListener("load", () => {
-  showStartupScreen();
-
-  setTimeout(() => {
-    if (!imagesReady) {
-      updateMenuText();
-    }
-  }, 1000);
+  showMenu();
+  loadArtwork();
 });
 
-showStartupScreen();
+showMenu();
 </script>
 
 </body>
 </html>
-
-  
-  
