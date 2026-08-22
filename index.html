@@ -2312,21 +2312,31 @@ return;
 
 x.save();
 
+x.beginPath();
+x.rect(
+areaX,
+areaY,
+areaWidth,
+areaHeight
+);
+x.clip();
+
 x.shadowColor=zone.edge;
 x.shadowBlur=10;
 
 if(image){
-const ratio=
-image.width/image.height;
+const imageRatio=image.width/image.height;
+const areaRatio=areaWidth/areaHeight;
 
-let drawWidth=areaWidth;
-let drawHeight=
-drawWidth/ratio;
+let drawWidth;
+let drawHeight;
 
-if(drawHeight>areaHeight){
+if(imageRatio>areaRatio){
 drawHeight=areaHeight;
-drawWidth=
-drawHeight*ratio;
+drawWidth=drawHeight*imageRatio;
+}else{
+drawWidth=areaWidth;
+drawHeight=drawWidth/imageRatio;
 }
 
 const drawX=
@@ -2336,12 +2346,12 @@ areaX+
 let drawY;
 
 if(side==="top"){
+drawY=areaY;
+}else{
 drawY=
 areaY+
 areaHeight-
 drawHeight;
-}else{
-drawY=areaY;
 }
 
 x.drawImage(
