@@ -2,8 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport"
-content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+>
 
 <title>Flight of the Phoenixes</title>
 
@@ -79,7 +82,8 @@ button:active{
 transform:scale(.98);
 }
 
-.roost{
+.roost,
+.leaderboard-list{
 width:min(390px,92vw);
 max-height:64vh;
 overflow:auto;
@@ -134,6 +138,70 @@ background:#164c68;
 border-color:#a87d92;
 background:#392333;
 }
+
+.leaderboard-button{
+border-color:#67e7ff;
+background:#164c68;
+}
+
+.leaderboard-title{
+color:#67e7ff;
+text-shadow:0 0 20px #36dfff;
+}
+
+.leaderboard-list{
+max-height:58vh;
+}
+
+.leaderboard-row{
+display:grid;
+grid-template-columns:38px 1fr auto;
+gap:10px;
+align-items:center;
+margin:8px 0;
+padding:12px;
+border:1px solid #3f657d;
+border-radius:12px;
+background:#122032;
+text-align:left;
+}
+
+.leaderboard-row.first{
+border-color:#ffd15c;
+background:linear-gradient(135deg,#3d2d18,#201925);
+}
+
+.leaderboard-rank{
+color:#ffd15c;
+font-size:20px;
+font-weight:bold;
+text-align:center;
+}
+
+.leaderboard-distance{
+color:#fff;
+font-size:18px;
+font-weight:bold;
+}
+
+.leaderboard-detail{
+margin-top:4px;
+color:#b9c9d7;
+font-size:12px;
+}
+
+.leaderboard-phoenix{
+font-size:12px;
+font-weight:bold;
+text-align:right;
+}
+
+.leaderboard-empty{
+padding:20px 10px;
+color:#b8ddeb;
+font-size:17px;
+line-height:1.45;
+}
 </style>
 </head>
 
@@ -151,6 +219,12 @@ Avoid volcanic rock and collect Ember Shards.
 
 <button onclick="startGame()">Endless Flight</button>
 <button onclick="openRoost()">Phoenix Roost</button>
+<button
+class="leaderboard-button"
+onclick="openLeaderboard()"
+>
+Top Flights
+</button>
 
 <p id="bestText"></p>
 </div>
@@ -165,16 +239,37 @@ Avoid volcanic rock and collect Ember Shards.
 <button onclick="closeRoost()">Back to Flight</button>
 </div>
 
+<div id="leaderboardScreen" class="screen hidden">
+<h1 class="leaderboard-title">TOP FLIGHTS</h1>
+
+<p>
+Your best 10 completed flights on this device.
+</p>
+
+<div
+id="leaderboardList"
+class="leaderboard-list"
+></div>
+
+<button onclick="closeLeaderboard()">Back to Flight</button>
+</div>
+
 <div id="reviveScreen" class="screen hidden">
 <h1 class="revive-title">PHOENIX FALLEN</h1>
 
 <p id="reviveText"></p>
 
-<button class="revive-button" onclick="reviveFlight()">
+<button
+class="revive-button"
+onclick="reviveFlight()"
+>
 Revive for 15 Shards
 </button>
 
-<button class="end-button" onclick="endFlight()">
+<button
+class="end-button"
+onclick="endFlight()"
+>
 End Flight
 </button>
 </div>
@@ -185,11 +280,26 @@ const x=c.getContext("2d");
 
 const menu=document.getElementById("menu");
 const roost=document.getElementById("roost");
-const reviveScreen=document.getElementById("reviveScreen");
-const reviveText=document.getElementById("reviveText");
-const bestText=document.getElementById("bestText");
-const roostShards=document.getElementById("roostShards");
-const phoenixList=document.getElementById("phoenixList");
+const leaderboardScreen=
+document.getElementById("leaderboardScreen");
+
+const reviveScreen=
+document.getElementById("reviveScreen");
+
+const reviveText=
+document.getElementById("reviveText");
+
+const bestText=
+document.getElementById("bestText");
+
+const roostShards=
+document.getElementById("roostShards");
+
+const phoenixList=
+document.getElementById("phoenixList");
+
+const leaderboardList=
+document.getElementById("leaderboardList");
 
 const W=420;
 const H=760;
@@ -200,41 +310,129 @@ const REVIVE_COST=15;
 const MAGNET_RANGE=80;
 const MAGNET_PULL=3.2;
 
+const LEADERBOARD_KEY=
+"phoenixLocalLeaderboardV2";
+
 const P={
 ember:{
 name:"Ember Phoenix",
 sub:"Starter Phoenix — orange flame",
 color:"#ff8a35",
 shadow:"#ff542f",
-cost:0,
-filter:""
+cost:0
 },
 
 azure:{
-name:"Azure Phoenix",
+name:"CC Azure Phoenix",
 sub:"Stormborn feathers and a checkpoint Storm Shield",
 color:"#67e7ff",
 shadow:"#36dfff",
-cost:25,
-filter:"hue-rotate(145deg) saturate(1.8) brightness(1.2)"
+cost:25
 },
 
 verdant:{
-name:"Verdant Phoenix",
+name:"CC Verdant Phoenix",
 sub:"Wildfire plumage and Ember Magnet",
 color:"#62f58c",
 shadow:"#56f58a",
-cost:50,
-filter:"hue-rotate(78deg) saturate(1.9) brightness(1.18)"
+cost:50
 },
 
 violet:{
-name:"Violet Phoenix",
+name:"CC Violet Phoenix",
 sub:"Arcane flame and checkpoint Arcane Pulse",
 color:"#c879ff",
 shadow:"#9e4bff",
-cost:100,
-filter:"hue-rotate(230deg) saturate(2.1) brightness(1.2)"
+cost:100
+},
+
+solar:{
+name:"CC Solar Phoenix",
+sub:"Sunfire wings and Solar Grace",
+color:"#ffd15c",
+shadow:"#ff9b2f",
+cost:175
+}
+};
+
+const ASSETS={
+phoenix:{
+ember:"Ember Phoenix.png",
+azure:"CC Azure Phoenix.png",
+verdant:"CC Verdant Phoenix.png",
+violet:"CC Violet Phoenix.png",
+solar:"CC Solar Phoenix.png"
+},
+
+zones:{
+ember:{
+topOnly:[
+"Ember Caverns Top Only Obstacle variation 1.png"
+],
+
+bottomOnly:[
+"Ember Caverns Bottom Only Obstacle Variation 1.png",
+"Ember Caverns Bottom Only Obstacle Variation 2.png"
+],
+
+flexible:[
+"Ember Caverns Top or Bottom Obstacle Variation 1.png"
+],
+
+floating:[]
+},
+
+azure:{
+topOnly:[
+"Azure Peaks Top Only Obstacle.png"
+],
+
+bottomOnly:[
+"Azure Peaks Bottom Only Obstacle.png"
+],
+
+flexible:[],
+
+floating:[
+"Azure Peaks Floating Obstacle Variation 1.png",
+"Azure Peaks Floating Obstacle Variation 2.png"
+]
+},
+
+verdant:{
+topOnly:[
+"Verdant wilds top obstacle 1.png"
+],
+
+bottomOnly:[
+"verdant wilds bottom obstacle 1.png",
+"verdant wilds bottom obstacle 2.png"
+],
+
+flexible:[
+"verdant Top or Bottom Obstacle 1.png"
+],
+
+floating:[]
+},
+
+celestial:{
+topOnly:[
+"Celestial Ruins Top 1.png",
+"Celestial Ruins Top 2.png",
+"Celestial Ruins Top 3.png"
+],
+
+bottomOnly:[
+"Celestial Ruins bottom 1.png",
+"Celestial Ruins bottom 2.png",
+"Celestial Ruins bottom 3.png"
+],
+
+flexible:[],
+
+floating:[]
+}
 }
 };
 
@@ -242,10 +440,11 @@ let playing=false;
 let holding=false;
 
 let bird;
-let rocks;
-let embers;
-let trails;
-let gate;
+let rocks=[];
+let floatingObstacles=[];
+let embers=[];
+let trails=[];
+let gate=null;
 
 let distance=0;
 let seconds=0;
@@ -259,57 +458,127 @@ let checkpointFlash=0;
 let revivedThisRun=false;
 let reviveSafety=0;
 
-let rebirthTimer=0;
-let rebirthParticles=[];
-
 let stormShield=false;
 let shieldFlash=0;
 
 let arcanePulse=false;
 let pulseFlash=0;
 
+let sunfireGrace=false;
+let sunfireActive=false;
+let sunfireFlash=0;
+
 let zoneFlash=0;
 let activeZone="EMBER CAVERNS";
 
-let best=Number(localStorage.getItem("phoenixBest"))||0;
-let totalShards=Number(localStorage.getItem("phoenixShards"))||0;
+let best=
+Number(localStorage.getItem("phoenixBest"))||0;
+
+let totalShards=
+Number(localStorage.getItem("phoenixShards"))||0;
 
 let highestCheckpoint=
-Number(localStorage.getItem("phoenixHighestCheckpoint"))||0;
-
-let azureUnlocked=
-localStorage.getItem("azureUnlocked")==="true";
-
-let verdantUnlocked=
-localStorage.getItem("verdantUnlocked")==="true";
-
-let violetUnlocked=
-localStorage.getItem("violetUnlocked")==="true";
+Number(
+localStorage.getItem("phoenixHighestCheckpoint")
+)||0;
 
 let equippedPhoenix=
-localStorage.getItem("equippedPhoenix")||"ember";
+localStorage.getItem("equippedPhoenix")
+||"ember";
+
+let azureUnlocked=
+localStorage.getItem("azureUnlocked")
+==="true";
+
+let verdantUnlocked=
+localStorage.getItem("verdantUnlocked")
+==="true";
+
+let violetUnlocked=
+localStorage.getItem("violetUnlocked")
+==="true";
+
+let solarUnlocked=
+localStorage.getItem("solarUnlocked")
+==="true";
+
+let leaderboard=
+loadLeaderboard();
+
+const art={};
+
+let artworkReady=false;
 
 if(
-equippedPhoenix==="azure"&&!azureUnlocked
+equippedPhoenix==="azure"&&
+!azureUnlocked
 ){
 equippedPhoenix="ember";
 }
 
 if(
-equippedPhoenix==="verdant"&&!verdantUnlocked
+equippedPhoenix==="verdant"&&
+!verdantUnlocked
 ){
 equippedPhoenix="ember";
 }
 
 if(
-equippedPhoenix==="violet"&&!violetUnlocked
+equippedPhoenix==="violet"&&
+!violetUnlocked
 ){
 equippedPhoenix="ember";
+}
+
+if(
+equippedPhoenix==="solar"&&
+!solarUnlocked
+){
+equippedPhoenix="ember";
+}
+
+function unlocked(key){
+return(
+key==="ember"||
+(
+key==="azure"&&
+azureUnlocked
+)||
+(
+key==="verdant"&&
+verdantUnlocked
+)||
+(
+key==="violet"&&
+violetUnlocked
+)||
+(
+key==="solar"&&
+solarUnlocked
+)
+);
 }
 
 function currentZone(){
+if(distance>=6000){
+return{
+id:"celestial",
+name:"CELESTIAL RUINS",
+top:"#17133d",
+mid:"#0b1230",
+bottom:"#050817",
+m1:"#171545",
+m2:"#24205d",
+m3:"#373078",
+particle:"#b98cff",
+rock:"#29245a",
+edge:"#e6c8ff"
+};
+}
+
 if(distance>=4000){
 return{
+id:"verdant",
 name:"VERDANT WILDS",
 top:"#123826",
 mid:"#0b2018",
@@ -325,6 +594,7 @@ edge:"#72f59b"
 
 if(distance>=2000){
 return{
+id:"azure",
 name:"AZURE PEAKS",
 top:"#10284b",
 mid:"#0b1733",
@@ -339,6 +609,7 @@ edge:"#65dfff"
 }
 
 return{
+id:"ember",
 name:"EMBER CAVERNS",
 top:"#35122f",
 mid:"#1a1022",
@@ -352,98 +623,27 @@ edge:"#ff8035"
 };
 }
 
-function updateMenuText(){
-bestText.innerHTML=`
-Best: ${best.toLocaleString()} m<br>
-Highest checkpoint:
-${
-highestCheckpoint
-?highestCheckpoint.toLocaleString()+" m"
-:"Not reached"
-}
-`;
-}
-
-updateMenuText();
-
-const img=new Image();
-let sprite=null;
-let azureSprite=null;
-img.onload=function(){
-const s=document.createElement("canvas");
-const q=s.getContext("2d");
-
-s.width=img.naturalWidth;
-s.height=img.naturalHeight;
-
-q.drawImage(img,0,0);
-
-const d=q.getImageData(
-0,
-0,
-s.width,
-s.height
+function loadLeaderboard(){
+try{
+const saved=
+JSON.parse(
+localStorage.getItem(LEADERBOARD_KEY)
 );
 
-for(let i=0;i<d.data.length;i+=4){
-const r=d.data[i];
-const g=d.data[i+1];
-const b=d.data[i+2];
-
-if(
-r>215&&
-g>215&&
-b>215&&
-Math.max(r,g,b)-Math.min(r,g,b)<28
-){
-d.data[i+3]=0;
+return Array.isArray(saved)
+?saved
+:[];
+}catch{
+return[];
 }
 }
 
-q.putImageData(d,0,0);
-sprite=s;
-};
-
-img.src="IMG_3821.jpeg";
-
-const azureImg=new Image();
-
-azureImg.onload=function(){
-const s=document.createElement("canvas");
-const q=s.getContext("2d");
-
-s.width=azureImg.naturalWidth;
-s.height=azureImg.naturalHeight;
-
-q.drawImage(azureImg,0,0);
-
-const d=q.getImageData(
-0,
-0,
-s.width,
-s.height
+function saveLeaderboard(){
+localStorage.setItem(
+LEADERBOARD_KEY,
+JSON.stringify(leaderboard)
 );
-
-for(let i=0;i<d.data.length;i+=4){
-const r=d.data[i];
-const g=d.data[i+1];
-const b=d.data[i+2];
-
-if(
-r>215&&
-g>215&&
-b>215&&
-Math.max(r,g,b)-Math.min(r,g,b)<28
-){
-d.data[i+3]=0;
 }
-}
-
-q.putImageData(d,0,0);
-azureSprite=s;
-};
-
-azureImg.src="IMG_3902.png";
 
 function save(){
 localStorage.setItem(
@@ -477,29 +677,40 @@ violetUnlocked
 );
 
 localStorage.setItem(
+"solarUnlocked",
+solarUnlocked
+);
+
+localStorage.setItem(
 "equippedPhoenix",
 equippedPhoenix
 );
 }
 
-function unlocked(key){
-return key==="ember"||
-(
-key==="azure"&&
-azureUnlocked
-)||
-(
-key==="verdant"&&
-verdantUnlocked
-)||
-(
-key==="violet"&&
-violetUnlocked
-);
+function updateMenuText(){
+bestText.innerHTML=`
+Best:
+${best.toLocaleString()} m<br>
+
+Highest checkpoint:
+${
+highestCheckpoint
+?highestCheckpoint.toLocaleString()+" m"
+:"Not reached"
+}
+`;
+}
+
+function pick(list){
+return list[
+Math.floor(
+Math.random()*list.length
+)
+];
 }
 
 function dot(color){
-return `
+return`
 <span
 class="preview"
 style="
@@ -510,10 +721,85 @@ box-shadow:0 0 12px ${color}
 `;
 }
 
+updateMenuText();
+
+function removeWhiteBackground(image){
+const output=document.createElement("canvas");
+const context=output.getContext("2d");
+
+output.width=image.naturalWidth;
+output.height=image.naturalHeight;
+
+context.drawImage(
+image,
+0,
+0,
+output.width,
+output.height
+);
+
+return output;
+}
+
+function loadImage(filename){
+return new Promise(resolve=>{
+const image=new Image();
+
+image.onload=()=>{
+art[filename]=removeWhiteBackground(image);
+resolve();
+};
+
+image.onerror=()=>{
+console.warn(
+"Could not load image:",
+filename
+);
+
+art[filename]=null;
+resolve();
+};
+
+image.src=filename;
+});
+}
+
+async function loadAllArtwork(){
+const filenames=[
+...Object.values(ASSETS.phoenix),
+
+...ASSETS.zones.ember.topOnly,
+...ASSETS.zones.ember.bottomOnly,
+...ASSETS.zones.ember.flexible,
+
+...ASSETS.zones.azure.topOnly,
+...ASSETS.zones.azure.bottomOnly,
+...ASSETS.zones.azure.floating,
+
+...ASSETS.zones.verdant.topOnly,
+...ASSETS.zones.verdant.bottomOnly,
+...ASSETS.zones.verdant.flexible,
+
+...ASSETS.zones.celestial.topOnly,
+...ASSETS.zones.celestial.bottomOnly
+];
+
+const uniqueFilenames=[
+...new Set(filenames)
+];
+
+await Promise.all(
+uniqueFilenames.map(loadImage)
+);
+
+artworkReady=true;
+}
+
 function openRoost(){
 renderRoost();
 
 menu.classList.add("hidden");
+leaderboardScreen.classList.add("hidden");
 roost.classList.remove("hidden");
 }
 
@@ -527,7 +813,7 @@ const phoenix=P[key];
 const active=equippedPhoenix===key;
 
 if(!unlocked(key)){
-return `
+return`
 <div class="card">
 
 <strong style="color:${phoenix.color}">
@@ -538,7 +824,9 @@ ${phoenix.name}
 <br>
 ${phoenix.sub}
 
-<button onclick="unlockPhoenix('${key}')">
+<button
+onclick="unlockPhoenix('${key}')"
+>
 Unlock for ${phoenix.cost} Shards
 </button>
 
@@ -546,7 +834,7 @@ Unlock for ${phoenix.cost} Shards
 `;
 }
 
-return `
+return`
 <div class="card ${active?"equipped":""}">
 
 <strong style="color:${phoenix.color}">
@@ -562,7 +850,9 @@ ${
 active
 ?""
 :`
-<button onclick="equipPhoenix('${key}')">
+<button
+onclick="equipPhoenix('${key}')"
+>
 Equip ${phoenix.name}
 </button>
 `
@@ -581,11 +871,7 @@ ${phoenixCard("ember")}
 ${phoenixCard("azure")}
 ${phoenixCard("verdant")}
 ${phoenixCard("violet")}
-
-<div class="card">
-<strong>Solar Phoenix</strong><br>
-Sunfire wings — 175 shards
-</div>
+${phoenixCard("solar")}
 `;
 }
 
@@ -598,6 +884,7 @@ alert(
 phoenix.cost+
 " Ember Shards."
 );
+
 return;
 }
 
@@ -615,10 +902,15 @@ if(key==="violet"){
 violetUnlocked=true;
 }
 
+if(key==="solar"){
+solarUnlocked=true;
+}
+
 equippedPhoenix=key;
 
 save();
 renderRoost();
+updateMenuText();
 }
 
 function equipPhoenix(key){
@@ -630,6 +922,92 @@ equippedPhoenix=key;
 
 save();
 renderRoost();
+updateMenuText();
+}
+
+function openLeaderboard(){
+renderLeaderboard();
+
+menu.classList.add("hidden");
+roost.classList.add("hidden");
+leaderboardScreen.classList.remove("hidden");
+}
+
+function closeLeaderboard(){
+leaderboardScreen.classList.add("hidden");
+menu.classList.remove("hidden");
+}
+
+function renderLeaderboard(){
+if(!leaderboard.length){
+leaderboardList.innerHTML=`
+<div class="leaderboard-empty">
+No completed flights yet.<br>
+Start an Endless Flight to set your first record.
+</div>
+`;
+
+return;
+}
+
+leaderboardList.innerHTML=
+leaderboard.map((entry,index)=>{
+const phoenix=
+P[entry.phoenix]||
+P.ember;
+
+return`
+<div
+class="leaderboard-row ${index===0?"first":""}"
+>
+
+<div class="leaderboard-rank">
+#${index+1}
+</div>
+
+<div>
+<div class="leaderboard-distance">
+${entry.distance.toLocaleString()} m
+</div>
+
+<div class="leaderboard-detail">
++${entry.shards} Shards · ${entry.date}
+</div>
+</div>
+
+<div
+class="leaderboard-phoenix"
+style="color:${phoenix.color}"
+>
+${phoenix.name.replace(" Phoenix","")}
+</div>
+
+</div>
+`;
+}).join("");
+}
+
+function recordFlight(distanceValue,shardValue){
+if(distanceValue<1){
+return;
+}
+
+leaderboard.push({
+distance:distanceValue,
+shards:shardValue,
+phoenix:equippedPhoenix,
+date:new Date().toLocaleDateString()
+});
+
+leaderboard.sort(
+(first,second)=>
+second.distance-first.distance
+);
+
+leaderboard=
+leaderboard.slice(0,10);
+
+saveLeaderboard();
 }
 
 function makeEmbers(){
@@ -644,7 +1022,15 @@ drift:Math.random()*7
 })
 );
 }
+
+loadAllArtwork();
+
 function startGame(){
+if(!artworkReady){
+alert("Artwork is still loading. Please wait a moment.");
+return;
+}
+
 playing=true;
 holding=false;
 
@@ -656,6 +1042,7 @@ radius:25
 };
 
 rocks=[];
+floatingObstacles=[];
 embers=makeEmbers();
 trails=[];
 gate=null;
@@ -671,14 +1058,15 @@ checkpointFlash=0;
 revivedThisRun=false;
 reviveSafety=0;
 
-rebirthTimer=0;
-rebirthParticles=[];
-
 stormShield=false;
 shieldFlash=0;
 
 arcanePulse=false;
 pulseFlash=0;
+
+sunfireGrace=false;
+sunfireActive=false;
+sunfireFlash=0;
 
 zoneFlash=0;
 activeZone="EMBER CAVERNS";
@@ -688,6 +1076,8 @@ lastTime=performance.now();
 addRock(720);
 
 menu.classList.add("hidden");
+roost.classList.add("hidden");
+leaderboardScreen.classList.add("hidden");
 
 requestAnimationFrame(loop);
 }
@@ -736,7 +1126,17 @@ holding=false;
 }
 );
 
+window.addEventListener(
+"blur",
+()=>{
+holding=false;
+}
+);
+
 function addRock(start=660){
+const zone=currentZone();
+const assets=ASSETS.zones[zone.id];
+
 let gap=Math.max(
 150,
 220-level*7
@@ -791,21 +1191,14 @@ const width=118;
 const top=middle-gap/2;
 const bottom=middle+gap/2;
 
-const face=Array.from(
-{length:7},
-(_,i)=>({
-dx:i*width/6,
-top:top-8-Math.random()*28,
-bottom:bottom+8+Math.random()*28
-})
-);
-
-rocks.push({
+const obstacle={
 x:start,
 width,
 top,
 bottom,
-face,
+
+topArt:null,
+bottomArt:null,
 
 shard:Math.random()<.35,
 shardX:start+width/2,
@@ -813,9 +1206,192 @@ shardY:
 top+
 42+
 Math.random()*(gap-84),
+
 shardCollected:false
-});
+};
+
+/*
+Top-only assets always attach to the ceiling.
+*/
+if(assets.topOnly.length){
+obstacle.topArt=
+art[pick(assets.topOnly)];
 }
+
+/*
+Bottom-only assets always attach to the floor.
+*/
+if(assets.bottomOnly.length){
+obstacle.bottomArt=
+art[pick(assets.bottomOnly)];
+}
+
+/*
+Flexible assets can be assigned to either side.
+They never appear on both sides of the same pair.
+*/
+if(assets.flexible.length){
+const flexibleArt=
+art[pick(assets.flexible)];
+
+if(Math.random()<.5){
+obstacle.topArt=flexibleArt;
+}else{
+obstacle.bottomArt=flexibleArt;
+}
+}
+
+rocks.push(obstacle);
+}
+
+function addFloatingObstacle(start=650){
+const zone=currentZone();
+const assets=ASSETS.zones[zone.id];
+
+if(
+!assets.floating||
+!assets.floating.length
+){
+return;
+}
+
+const imageName=
+pick(assets.floating);
+
+const image=art[imageName];
+
+if(!image){
+return;
+}
+
+const width=92;
+const height=92;
+
+const floating={
+x:start,
+y:150+Math.random()*(H-300),
+width,
+height,
+image,
+shard:false,
+shardCollected:false
+};
+
+floatingObstacles.push(floating);
+}
+
+function floatingObstacleAllowed(){
+const zone=currentZone();
+
+return(
+zone.id==="azure"&&
+distance>=2000&&
+distance<4000
+);
+}
+
+function obstacleSpacingReady(){
+if(!rocks.length){
+return true;
+}
+
+const lastRock=
+rocks[rocks.length-1];
+
+return lastRock.x<340;
+}
+
+function floatingSpacingReady(){
+if(!floatingObstacles.length){
+return true;
+}
+
+const lastFloating=
+floatingObstacles[
+floatingObstacles.length-1
+];
+
+return lastFloating.x<315;
+}
+
+function updateAbilityButton(){
+abilityButton.classList.add("hidden");
+
+if(!playing){
+return;
+}
+
+if(
+equippedPhoenix==="azure"&&
+stormShield
+){
+abilityButton.textContent="STORM\nSHIELD";
+abilityButton.classList.remove("hidden");
+}
+
+if(
+equippedPhoenix==="violet"&&
+arcanePulse
+){
+abilityButton.textContent="ARCANE\nPULSE";
+abilityButton.classList.remove("hidden");
+}
+
+if(
+equippedPhoenix==="solar"&&
+sunfireGrace
+){
+abilityButton.textContent="SUNFIRE\nGRACE";
+abilityButton.classList.add("hidden");
+}
+}
+
+function useAbility(){
+if(!playing){
+return;
+}
+
+if(
+equippedPhoenix==="azure"&&
+stormShield
+){
+stormShield=false;
+shieldFlash=.95;
+updateAbilityButton();
+return;
+}
+
+if(
+equippedPhoenix==="violet"&&
+arcanePulse
+){
+arcanePulse=false;
+pulseFlash=.95;
+
+const target=rocks.find(
+rock=>rock.x+rock.width>bird.x
+);
+
+if(target){
+target.x=-220;
+target.shardX=-220;
+}
+
+updateAbilityButton();
+return;
+}
+
+if(
+equippedPhoenix==="solar"&&
+sunfireGrace
+){
+sunfireGrace=false;
+sunfireActive=true;
+sunfireFlash=.95;
+updateAbilityButton();
+}
+}
+
 function triggerGameOver(){
 if(!playing){
 return;
@@ -848,12 +1424,23 @@ endFlight();
 function endFlight(){
 reviveScreen.classList.add("hidden");
 
+const finalDistance=
+Math.floor(distance);
+
+const finalShards=
+Math.floor(runShards);
+
 best=Math.max(
 best,
-Math.floor(distance)
+finalDistance
 );
 
-totalShards+=runShards;
+totalShards+=finalShards;
+
+recordFlight(
+finalDistance,
+finalShards
+);
 
 save();
 updateMenuText();
@@ -861,9 +1448,9 @@ updateMenuText();
 bestText.innerHTML+=`
 <br><br>
 Flight ended at
-<b>${Math.floor(distance).toLocaleString()} m</b>
+<b>${finalDistance.toLocaleString()} m</b>
 <br>
-Run Shards: <b>${runShards}</b>
+Run Shards: <b>${finalShards}</b>
 <br>
 Total Shards: ${totalShards}
 `;
@@ -888,43 +1475,19 @@ radius:25
 };
 
 rocks=[];
+floatingObstacles=[];
 trails=[];
 gate=null;
 
 reviveSafety=1.8;
-rebirthTimer=2.5;
-rebirthParticles=[];
 
 stormShield=false;
 shieldFlash=0;
-
 arcanePulse=false;
 pulseFlash=0;
-
-for(let i=0;i<30;i++){
-const angle=
-Math.random()*Math.PI*2;
-
-const particleSpeed=
-70+
-Math.random()*170;
-
-rebirthParticles.push({
-x:bird.x,
-y:bird.y,
-velocityX:
-Math.cos(angle)*particleSpeed,
-velocityY:
-Math.sin(angle)*particleSpeed,
-size:3+Math.random()*5,
-life:.9+Math.random()*.7,
-maxLife:1.6,
-color:
-i%2===0
-?"#67e7ff"
-:"#ffd15c"
-});
-}
+sunfireGrace=false;
+sunfireActive=false;
+sunfireFlash=0;
 
 playing=true;
 holding=false;
@@ -935,6 +1498,51 @@ save();
 reviveScreen.classList.add("hidden");
 
 requestAnimationFrame(loop);
+}
+
+function moveFloatingObstacles(scrollSpeed,dt){
+for(const floating of floatingObstacles){
+floating.x-=scrollSpeed*dt;
+
+floating.y+=
+Math.sin(seconds*2+floating.x*.02)*
+9*
+dt;
+
+const birdDistance=Math.hypot(
+bird.x-floating.x,
+bird.y-floating.y
+);
+
+if(
+birdDistance<
+bird.radius+
+floating.width*.32
+){
+if(sunfireActive){
+floating.x=-220;
+continue;
+}
+
+if(
+equippedPhoenix==="azure"&&
+stormShield
+){
+stormShield=false;
+shieldFlash=.75;
+floating.x=-220;
+continue;
+}
+
+triggerGameOver();
+return;
+}
+}
+
+floatingObstacles=
+floatingObstacles.filter(
+floating=>floating.x+floating.width>-100
+);
 }
 
 function loop(now){
@@ -951,15 +1559,16 @@ lastTime=now;
 
 seconds+=dt;
 distance+=52*dt;
+
 level=Math.min(
 10,
 Math.floor(distance/500)
 );
 
-const newZone=currentZone().name;
+const zone=currentZone();
 
-if(newZone!==activeZone){
-activeZone=newZone;
+if(zone.name!==activeZone){
+activeZone=zone.name;
 zoneFlash=2.6;
 }
 
@@ -973,11 +1582,6 @@ reviveSafety=Math.max(
 reviveSafety-dt
 );
 
-rebirthTimer=Math.max(
-0,
-rebirthTimer-dt
-);
-
 shieldFlash=Math.max(
 0,
 shieldFlash-dt
@@ -988,36 +1592,23 @@ pulseFlash=Math.max(
 pulseFlash-dt
 );
 
+sunfireFlash=Math.max(
+0,
+sunfireFlash-dt
+);
+
 zoneFlash=Math.max(
 0,
 zoneFlash-dt
 );
 
-rebirthParticles=
-rebirthParticles.filter(
-particle=>{
-particle.life-=dt;
-
-particle.x+=
-particle.velocityX*dt;
-
-particle.y+=
-particle.velocityY*dt;
-
-particle.velocityX*=.96;
-particle.velocityY*=.96;
-particle.velocityY+=18*dt;
-
-return particle.life>0;
-}
-);
-
 /*
-Original gameplay physics.
-Do not change this line.
+Original gameplay physics:
+hold to rise, release to glide.
 */
 bird.velocity+=
-(holding?-720:920)*dt;
+(holding?-720:920)*
+dt;
 
 bird.velocity=Math.max(
 -360,
@@ -1079,12 +1670,18 @@ if(
 reviveSafety<=0&&
 !calm&&
 !gate&&
-(
-rocks.length===0||
-rocks[rocks.length-1].x<340
-)
+obstacleSpacingReady()
 ){
 addRock();
+}
+
+if(
+floatingObstacleAllowed()&&
+reviveSafety<=0&&
+floatingSpacingReady()&&
+Math.random()<.018
+){
+addFloatingObstacle();
 }
 
 const scrollSpeed=
@@ -1124,11 +1721,14 @@ MAGNET_PULL;
 }
 }
 
-const dx=bird.x-rock.shardX;
-const dy=bird.y-rock.shardY;
+const shardDistance=
+Math.hypot(
+bird.x-rock.shardX,
+bird.y-rock.shardY
+);
 
 if(
-Math.hypot(dx,dy)<
+shardDistance<
 bird.radius+14
 ){
 rock.shardCollected=true;
@@ -1136,39 +1736,56 @@ runShards++;
 }
 }
 
-const hitSide=
+const insideRockX=
 bird.x+bird.radius>rock.x&&
 bird.x-bird.radius<
 rock.x+rock.width;
 
-const hitRock=
+const outsideGap=
 bird.y-bird.radius<rock.top||
 bird.y+bird.radius>rock.bottom;
 
 if(
 reviveSafety<=0&&
-hitSide&&
-hitRock
+insideRockX&&
+outsideGap
 ){
+if(
+sunfireActive
+){
+rock.x=-220;
+rock.shardX=-220;
+continue;
+}
+
 if(
 equippedPhoenix==="azure"&&
 stormShield
 ){
 stormShield=false;
 shieldFlash=.75;
-
 rock.x=-220;
 rock.shardX=-220;
-}else{
+continue;
+}
+
 triggerGameOver();
 return;
-}
 }
 }
 
 rocks=rocks.filter(
 rock=>rock.x>-150
 );
+
+moveFloatingObstacles(
+scrollSpeed,
+dt
+);
+
+if(!playing){
+return;
+}
 
 if(
 !gate&&
@@ -1214,14 +1831,25 @@ arcanePulse=true;
 pulseFlash=.8;
 }
 
+if(equippedPhoenix==="solar"){
+sunfireGrace=true;
+}
+
 save();
+updateAbilityButton();
+
 gate=null;
 }
 
-if(gate&&gate.x<-100){
+if(
+gate&&
+gate.x<-100
+){
 gate=null;
 }
 }
+
+sunfireActive=false;
 
 if(
 bird.y-bird.radius<0||
@@ -1237,11 +1865,14 @@ requestAnimationFrame(loop);
 }
 
 c.addEventListener(
-"touchstart",
+"pointerdown",
 event=>{
 event.preventDefault();
 
-if(playing){
+if(
+playing&&
+event.target===c
+){
 holding=true;
 }
 },
@@ -1249,7 +1880,7 @@ holding=true;
 );
 
 c.addEventListener(
-"touchend",
+"pointerup",
 event=>{
 event.preventDefault();
 holding=false;
@@ -1258,35 +1889,68 @@ holding=false;
 );
 
 c.addEventListener(
-"touchcancel",
+"pointercancel",
 ()=>{
 holding=false;
 }
 );
 
-c.addEventListener(
-"mousedown",
+window.addEventListener(
+"pointerup",
 ()=>{
-if(playing){
+holding=false;
+}
+);
+
+window.addEventListener(
+"keydown",
+event=>{
+if(
+(
+event.code==="Space"||
+event.code==="ArrowUp"
+)&&
+!event.repeat
+){
+event.preventDefault();
 holding=true;
+}
+
+if(event.code==="KeyE"){
+useAbility();
 }
 }
 );
 
 window.addEventListener(
-"mouseup",
-()=>{
+"keyup",
+event=>{
+if(
+event.code==="Space"||
+event.code==="ArrowUp"
+){
 holding=false;
 }
+}
 );
-function mountains(color,y,height,spacing,speed){
+
+function mountains(
+color,
+y,
+height,
+spacing,
+speed
+){
 const offset=
 (distance*speed)%spacing;
 
 x.fillStyle=color;
 
 x.beginPath();
-x.moveTo(-spacing-offset,H);
+x.moveTo(
+-spacing-offset,
+H
+);
 
 for(
 let px=-spacing-offset;
@@ -1294,17 +1958,27 @@ px<W+spacing;
 px+=spacing
 ){
 x.lineTo(px,y);
-x.lineTo(px+spacing/2,y-height);
-x.lineTo(px+spacing,y);
+x.lineTo(
+px+spacing/2,
+y-height
+);
+x.lineTo(
+px+spacing,
+y
+);
 }
 
-x.lineTo(W+spacing,H);
+x.lineTo(
+W+spacing,
+H
+);
+
 x.closePath();
 x.fill();
 }
 
 function draw(){
-const z=currentZone();
+const zone=currentZone();
 
 const sky=x.createLinearGradient(
 0,
@@ -1313,20 +1987,239 @@ const sky=x.createLinearGradient(
 H
 );
 
-sky.addColorStop(0,z.top);
-sky.addColorStop(.48,z.mid);
-sky.addColorStop(1,z.bottom);
+sky.addColorStop(0,zone.top);
+sky.addColorStop(.48,zone.mid);
+sky.addColorStop(1,zone.bottom);
 
 x.fillStyle=sky;
 x.fillRect(0,0,W,H);
 
-mountains(z.m1,575,92,180,.08);
-mountains(z.m2,640,125,145,.16);
-mountains(z.m3,705,110,112,.26);
+drawZoneMap(zone);
+drawEmbers(zone);
+drawRocks(zone);
+drawFloatingObstacles();
+drawGate(zone);
+drawTrails();
+drawBird();
+drawHud(zone);
+}
 
+function drawZoneMap(zone){
+if(zone.id==="celestial"){
+drawCelestialMap(zone);
+return;
+}
+
+if(zone.id==="verdant"){
+mountains(
+zone.m1,
+575,
+92,
+180,
+.08
+);
+
+mountains(
+zone.m2,
+640,
+125,
+145,
+.16
+);
+
+mountains(
+zone.m3,
+705,
+110,
+112,
+.26
+);
+
+return;
+}
+
+if(zone.id==="azure"){
+mountains(
+zone.m1,
+575,
+92,
+180,
+.08
+);
+
+mountains(
+zone.m2,
+640,
+125,
+145,
+.16
+);
+
+mountains(
+zone.m3,
+705,
+110,
+112,
+.26
+);
+
+return;
+}
+
+mountains(
+zone.m1,
+575,
+92,
+180,
+.08
+);
+
+mountains(
+zone.m2,
+640,
+125,
+145,
+.16
+);
+
+mountains(
+zone.m3,
+705,
+110,
+112,
+.26
+);
+}
+
+function drawCelestialMap(zone){
+mountains(
+zone.m1,
+575,
+92,
+190,
+.08
+);
+
+mountains(
+zone.m2,
+640,
+125,
+155,
+.16
+);
+
+mountains(
+zone.m3,
+705,
+110,
+120,
+.26
+);
+
+/* Stars */
+x.save();
+
+for(let i=0;i<38;i++){
+const starX=
+(i*97-distance*.035)%
+(W+30);
+
+const wrappedX=
+starX<0
+?starX+W+30
+:starX;
+
+const starY=
+35+
+(i*53)%
+430;
+
+const starSize=
+1+
+(i%3)*.65;
+
+x.globalAlpha=
+.35+
+(i%4)*.12;
+
+x.fillStyle=
+i%5===0
+?"#ffd978"
+:"#d8c9ff";
+
+x.beginPath();
+x.arc(
+wrappedX,
+starY,
+starSize,
+0,
+Math.PI*2
+);
+
+x.fill();
+}
+
+/* Floating ruin silhouettes */
+x.globalAlpha=.24;
+x.fillStyle="#6f66b1";
+
+for(let i=0;i<5;i++){
+const ruinX=
+((i*153-distance*.12)%
+(W+190))-95;
+
+const ruinY=
+205+
+(i%3)*92;
+
+x.fillRect(
+ruinX,
+ruinY,
+92,
+14
+);
+
+x.fillRect(
+ruinX+12,
+ruinY-38,
+15,
+38
+);
+
+x.fillRect(
+ruinX+64,
+ruinY-55,
+15,
+55
+);
+
+x.beginPath();
+x.moveTo(
+ruinX+38,
+ruinY-38
+);
+
+x.lineTo(
+ruinX+56,
+ruinY-63
+);
+
+x.lineTo(
+ruinX+74,
+ruinY-38
+);
+
+x.closePath();
+x.fill();
+}
+
+x.restore();
+}
+
+function drawEmbers(zone){
 for(const ember of embers){
 x.globalAlpha=.55;
-x.fillStyle=z.particle;
+x.fillStyle=zone.particle;
 
 x.beginPath();
 x.arc(
@@ -1341,7 +2234,339 @@ x.fill();
 }
 
 x.globalAlpha=1;
+}
 
+function drawRocks(zone){
+for(const rock of rocks){
+drawObstaclePiece(
+rock.topArt,
+rock.x,
+0,
+rock.width,
+rock.top,
+"top",
+zone
+);
+
+drawObstaclePiece(
+rock.bottomArt,
+rock.x,
+rock.bottom,
+rock.width,
+H-rock.bottom,
+"bottom",
+zone
+);
+
+if(
+rock.shard&&
+!rock.shardCollected
+){
+drawShard(
+rock.shardX,
+rock.shardY
+);
+}
+}
+}
+
+function drawObstaclePiece(
+image,
+areaX,
+areaY,
+areaWidth,
+areaHeight,
+side,
+zone
+){
+if(areaHeight<=0){
+return;
+}
+
+x.save();
+
+x.shadowColor=zone.edge;
+x.shadowBlur=10;
+
+if(image){
+const ratio=
+image.width/image.height;
+
+let drawWidth=areaWidth;
+let drawHeight=
+drawWidth/ratio;
+
+if(drawHeight>areaHeight){
+drawHeight=areaHeight;
+drawWidth=
+drawHeight*ratio;
+}
+
+const drawX=
+areaX+
+(areaWidth-drawWidth)/2;
+
+let drawY;
+
+if(side==="top"){
+drawY=
+areaY+
+areaHeight-
+drawHeight;
+}else{
+drawY=areaY;
+}
+
+x.drawImage(
+image,
+drawX,
+drawY,
+drawWidth,
+drawHeight
+);
+}else{
+drawFallbackObstacle(
+areaX,
+areaY,
+areaWidth,
+areaHeight,
+side,
+zone
+);
+}
+
+x.restore();
+}
+
+function drawFallbackObstacle(
+areaX,
+areaY,
+areaWidth,
+areaHeight,
+side,
+zone
+){
+const gradient=x.createLinearGradient(
+areaX,
+areaY,
+areaX+areaWidth,
+areaY+areaHeight
+);
+
+gradient.addColorStop(
+0,
+zone.edge
+);
+
+gradient.addColorStop(
+.3,
+zone.rock
+);
+
+gradient.addColorStop(
+1,
+"#080914"
+);
+
+x.fillStyle=gradient;
+
+x.beginPath();
+
+if(side==="top"){
+x.moveTo(areaX,areaY);
+x.lineTo(
+areaX+areaWidth,
+areaY
+);
+
+x.lineTo(
+areaX+areaWidth,
+areaY+areaHeight*.88
+);
+
+x.lineTo(
+areaX+areaWidth*.67,
+areaY+areaHeight
+);
+
+x.lineTo(
+areaX+areaWidth*.3,
+areaY+areaHeight*.78
+);
+
+x.lineTo(
+areaX,
+areaY+areaHeight
+);
+}else{
+x.moveTo(
+areaX,
+areaY+areaHeight
+);
+
+x.lineTo(
+areaX+areaWidth,
+areaY+areaHeight
+);
+
+x.lineTo(
+areaX+areaWidth,
+areaY+areaHeight*.12
+);
+
+x.lineTo(
+areaX+areaWidth*.67,
+areaY
+);
+
+x.lineTo(
+areaX+areaWidth*.3,
+areaY+areaHeight*.2
+);
+
+x.lineTo(
+areaX,
+areaY
+);
+}
+
+x.closePath();
+x.fill();
+}
+
+function drawFloatingObstacles(){
+for(const floating of floatingObstacles){
+if(!floating.image){
+continue;
+}
+
+x.save();
+
+x.globalAlpha=.95;
+x.shadowColor="#65dfff";
+x.shadowBlur=15;
+
+const sway=
+Math.sin(seconds*2+floating.x*.02)*
+5;
+
+x.translate(
+floating.x,
+floating.y+sway
+);
+
+x.drawImage(
+floating.image,
+-floating.width/2,
+-floating.height/2,
+floating.width,
+floating.height
+);
+
+x.restore();
+}
+}
+
+function drawShard(shardX,shardY){
+const pulse=
+1+
+Math.sin(seconds*6+shardX)*
+.12;
+
+x.save();
+
+x.translate(
+shardX,
+shardY
+);
+
+x.rotate(Math.PI/4);
+x.scale(pulse,pulse);
+
+x.fillStyle="#ffd15c";
+x.shadowColor="#ff842e";
+x.shadowBlur=18;
+
+x.fillRect(
+-10,
+-10,
+20,
+20
+);
+
+x.fillStyle="#fff6bd";
+
+x.fillRect(
+-4,
+-7,
+8,
+8
+);
+
+x.restore();
+}
+
+function drawGate(zone){
+if(!gate){
+return;
+}
+
+x.save();
+
+x.translate(
+gate.x,
+gate.y
+);
+
+const pulse=
+1+
+Math.sin(gate.pulse*8)*
+.08;
+
+x.scale(
+pulse,
+pulse
+);
+
+x.globalAlpha=.25;
+x.fillStyle=zone.edge;
+x.shadowColor=zone.edge;
+x.shadowBlur=30;
+
+x.beginPath();
+x.ellipse(
+0,
+0,
+38,
+68,
+0,
+0,
+Math.PI*2
+);
+
+x.fill();
+
+x.globalAlpha=1;
+x.strokeStyle="#ffd15c";
+x.lineWidth=5;
+
+x.beginPath();
+x.ellipse(
+0,
+0,
+38,
+68,
+0,
+0,
+Math.PI*2
+);
+
+x.stroke();
+
+x.restore();
+}
+
+function drawTrails(){
 for(const trail of trails){
 const alpha=
 trail.life/trail.maxLife;
@@ -1349,7 +2574,11 @@ trail.life/trail.maxLife;
 x.save();
 
 x.globalAlpha=alpha*.82;
-x.translate(trail.x,trail.y);
+x.translate(
+trail.x,
+trail.y
+);
+
 x.scale(
 1.1-alpha*.2,
 1
@@ -1369,184 +2598,26 @@ Math.PI*2
 );
 
 x.fill();
-x.restore();
-}
-
-for(const rock of rocks){
-x.fillStyle=z.rock;
-x.strokeStyle=z.edge;
-x.lineWidth=2.5;
-
-/* Top rock section */
-x.beginPath();
-x.moveTo(rock.x,0);
-x.lineTo(
-rock.x+rock.width,
-0
-);
-
-for(
-let i=6;
-i>=0;
-i--
-){
-x.lineTo(
-rock.x+rock.face[i].dx,
-rock.face[i].top
-);
-}
-
-x.closePath();
-x.fill();
-x.stroke();
-
-/* Bottom rock section */
-x.beginPath();
-x.moveTo(rock.x,H);
-x.lineTo(
-rock.x+rock.width,
-H
-);
-
-for(
-let i=6;
-i>=0;
-i--
-){
-x.lineTo(
-rock.x+rock.face[i].dx,
-rock.face[i].bottom
-);
-}
-
-x.closePath();
-x.fill();
-x.stroke();
-
-if(
-rock.shard&&
-!rock.shardCollected
-){
-x.save();
-
-x.translate(
-rock.shardX,
-rock.shardY
-);
-
-x.rotate(seconds*2);
-
-x.shadowBlur=14;
-x.shadowColor="#ff7b2f";
-x.fillStyle="#ffd15c";
-
-x.beginPath();
-x.moveTo(0,-11);
-x.lineTo(8,0);
-x.lineTo(0,11);
-x.lineTo(-8,0);
-x.closePath();
-x.fill();
 
 x.restore();
 }
 }
 
-if(gate){
+function drawBird(){
 const phoenix=P[equippedPhoenix];
 
-x.save();
-
-x.translate(
-gate.x,
-gate.y
-);
-
-const pulse=
-1+
-Math.sin(gate.pulse*8)*.08;
-
-x.scale(pulse,pulse);
-
-x.globalAlpha=.28;
-x.fillStyle=phoenix.color;
-x.shadowBlur=30;
-x.shadowColor=phoenix.color;
-
-x.beginPath();
-x.ellipse(
-0,
-0,
-38,
-68,
-0,
-0,
-Math.PI*2
-);
-x.fill();
-
-x.globalAlpha=1;
-x.strokeStyle="#ffd15c";
-x.lineWidth=5;
-
-x.beginPath();
-x.ellipse(
-0,
-0,
-38,
-68,
-0,
-0,
-Math.PI*2
-);
-x.stroke();
-
-x.restore();
-}
-
-for(const particle of rebirthParticles){
-const alpha=
-particle.life/particle.maxLife;
-
-x.save();
-
-x.globalAlpha=Math.max(0,alpha);
-x.shadowBlur=16;
-x.shadowColor=particle.color;
-x.fillStyle=particle.color;
-
-x.beginPath();
-x.arc(
-particle.x,
-particle.y,
-particle.size*alpha,
-0,
-Math.PI*2
-);
-
-x.fill();
-x.restore();
-}
-
-const phoenix=P[equippedPhoenix];
-
-/*
-Only Azure uses the new image.
-All other Phoenixes still use the original sprite.
-*/
-const birdSprite=
-equippedPhoenix==="azure"&&azureSprite
-?azureSprite
-:sprite;
+const image=
+art[ASSETS.phoenix[equippedPhoenix]];
 
 const flap=
-Math.sin(seconds*18)*12;
+Math.sin(seconds*18)*
+12;
 
 x.save();
 
 x.translate(
 bird.x,
-bird.y-flap*0.03
+bird.y-flap*.03
 );
 
 x.rotate(
@@ -1564,13 +2635,12 @@ x.scale(
 .94+flap*.012
 );
 
-x.filter=phoenix.filter;
 x.shadowBlur=18;
 x.shadowColor=phoenix.shadow;
 
-if(birdSprite){
+if(image){
 x.drawImage(
-birdSprite,
+image,
 -52,
 -52,
 104,
@@ -1643,13 +2713,51 @@ x.stroke();
 x.restore();
 }
 
+if(
+equippedPhoenix==="solar"&&
+sunfireActive
+){
+x.save();
+
+x.globalAlpha=.5;
+x.strokeStyle="#ffd15c";
+x.lineWidth=5;
+x.shadowBlur=26;
+x.shadowColor="#ff9b2f";
+
+x.beginPath();
+x.arc(
+bird.x,
+bird.y,
+46,
+0,
+Math.PI*2
+);
+
+x.stroke();
+x.restore();
+}
+}
+
+function drawHud(zone){
+x.save();
+
+x.fillStyle="rgba(5,7,16,.68)";
+x.fillRect(
+0,
+0,
+W,
+90
+);
+
 x.fillStyle="#fff";
 x.font="bold 20px Arial";
+x.textAlign="left";
 
 x.fillText(
 Math.floor(distance).toLocaleString()+" m",
 16,
-32
+31
 );
 
 x.fillStyle="#ffd15c";
@@ -1658,11 +2766,12 @@ x.font="bold 15px Arial";
 x.fillText(
 "SHARDS "+runShards,
 16,
-57
+56
 );
 
 if(equippedPhoenix==="verdant"){
 x.fillStyle="#62f58c";
+
 x.font="bold 13px Arial";
 
 x.fillText(
@@ -1706,36 +2815,63 @@ arcanePulse
 );
 }
 
+if(equippedPhoenix==="solar"){
+x.fillStyle=
+sunfireGrace
+?"#ffd15c"
+:"#9f8751";
+
+x.font="bold 13px Arial";
+
+x.fillText(
+sunfireGrace
+?"SUNFIRE GRACE READY"
+:"SUNFIRE GRACE USED",
+16,
+80
+);
+}
+
 x.textAlign="right";
-x.fillStyle=phoenix.color;
+x.fillStyle=P[equippedPhoenix].color;
 x.font="bold 15px Arial";
 
 x.fillText(
-z.name+"  LEVEL "+(level+1),
+zone.name+"  LEVEL "+(level+1),
 W-18,
-32
+31
 );
 
-x.textAlign="left";
+x.restore();
 
 if(checkpointFlash>0){
+x.save();
+
+const alpha=
+Math.min(
+1,
+checkpointFlash/2.6
+);
+
+x.globalAlpha=alpha;
 x.textAlign="center";
 x.fillStyle="#ffd15c";
-x.font="bold 25px Arial";
+x.shadowBlur=18;
+x.shadowColor="#ff9b2f";
+x.font="bold 24px Arial";
 
 x.fillText(
 "CHECKPOINT "+
 checkpoint.toLocaleString()+" m",
 W/2,
-118
+120
 );
 
-x.font="bold 17px Arial";
-
+x.font="bold 16px Arial";
 x.fillText(
 "1 EMBER SHARD",
 W/2,
-146
+147
 );
 
 if(equippedPhoenix==="azure"){
@@ -1744,7 +2880,7 @@ x.fillStyle="#67e7ff";
 x.fillText(
 "STORM SHIELD CHARGED",
 W/2,
-171
+172
 );
 }
 
@@ -1754,71 +2890,85 @@ x.fillStyle="#c879ff";
 x.fillText(
 "ARCANE PULSE CHARGED",
 W/2,
-171
+172
 );
 }
 
-x.textAlign="left";
+if(equippedPhoenix==="solar"){
+x.fillStyle="#ffd15c";
+
+x.fillText(
+"SUNFIRE GRACE CHARGED",
+W/2,
+172
+);
+}
+
+x.restore();
 }
 
 if(zoneFlash>0){
+x.save();
+
 const alpha=
 Math.min(
 1,
 zoneFlash/2.6
 );
 
-x.save();
-
 x.globalAlpha=alpha;
 x.textAlign="center";
+x.fillStyle=zone.edge;
 x.shadowBlur=20;
-x.shadowColor=z.edge;
-x.fillStyle=z.edge;
-x.font="bold 28px Arial";
+x.shadowColor=zone.edge;
+x.font="bold 27px Arial";
 
 x.fillText(
 activeZone,
 W/2,
-215
+218
 );
 
-x.font="16px Arial";
+x.shadowBlur=0;
 x.fillStyle="#fff";
+x.font="16px Arial";
+
+if(activeZone==="AZURE PEAKS"){
+x.fillText(
+"Stormborn heights rise ahead",
+W/2,
+245
+);
+}
 
 if(activeZone==="VERDANT WILDS"){
 x.fillText(
 "Where emerald flames awaken",
 W/2,
-242
+245
 );
 }
-else if(activeZone==="AZURE PEAKS"){
+
+if(activeZone==="CELESTIAL RUINS"){
 x.fillText(
-"Stormborn heights rise ahead",
+"Ancient stars guard the heavens",
 W/2,
-242
+245
 );
 }
 
 x.restore();
-x.textAlign="left";
 }
 
-if(rebirthTimer>0){
-const alpha=
-Math.min(
-1,
-rebirthTimer/2
-);
-
+if(
+rebirthTimer>0
+){
 x.save();
 
-x.globalAlpha=alpha;
 x.textAlign="center";
-x.shadowBlur=18;
-x.shadowColor="#67e7ff";
 x.fillStyle="#67e7ff";
+x.shadowBlur=18;
+x.shadowColor="#36dfff";
 x.font="bold 27px Arial";
 
 x.fillText(
@@ -1827,8 +2977,9 @@ W/2,
 190
 );
 
-x.font="bold 16px Arial";
+x.shadowBlur=0;
 x.fillStyle="#ffd15c";
+x.font="bold 16px Arial";
 
 x.fillText(
 "A second flame takes flight",
@@ -1837,11 +2988,77 @@ W/2,
 );
 
 x.restore();
-x.textAlign="left";
 }
 }
 
+function draw(){
+const zone=currentZone();
+
+const sky=x.createLinearGradient(
+0,
+0,
+0,
+H
+);
+
+sky.addColorStop(
+0,
+zone.top
+);
+
+sky.addColorStop(
+.48,
+zone.mid
+);
+
+sky.addColorStop(
+1,
+zone.bottom
+);
+
+x.fillStyle=sky;
+x.fillRect(
+0,
+0,
+W,
+H
+);
+
+drawZoneMap(zone);
+drawEmbers(zone);
+drawRocks(zone);
+drawFloatingObstacles();
+drawGate(zone);
+drawTrails();
+drawBird();
+drawHud(zone);
+}
+
+function showMenu(){
+playing=false;
+holding=false;
+
+reviveScreen.classList.add("hidden");
+roost.classList.add("hidden");
+leaderboardScreen.classList.add("hidden");
+
+menu.classList.remove("hidden");
+
 updateMenuText();
+}
+
+window.addEventListener(
+"load",
+()=>{
+loadAllArtwork().then(
+()=>{
+showMenu();
+}
+);
+}
+);
+
+showMenu();
 </script>
 
 </body>
