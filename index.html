@@ -1164,13 +1164,21 @@ function addRock(start=660){
 const zone=currentZone();
 const assets=ASSETS.zones[zone.id];
 
-let gap=Math.max(
-150,
-220-level*7
+let gap=
+135+
+Math.random()*125-
+level*5;
+
+gap=Math.max(
+115,
+Math.min(
+260,
+gap
+)
 );
 
-let min=gap/2+45;
-let max=H-gap/2-45;
+let min=gap/2+55;
+let max=H-gap/2-55;
 
 let middle=
 min+
