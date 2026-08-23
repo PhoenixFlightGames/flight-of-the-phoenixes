@@ -1763,19 +1763,30 @@ runShards++;
 }
 }
 
-const insideRockX=
-bird.x+bird.radius>rock.x&&
-bird.x-bird.radius<
-rock.x+rock.width;
+const hitsTopImage=
+obstacleImageCollision(
+rock.topArt,
+rock.x,
+0,
+rock.width,
+rock.top
+);
 
-const outsideGap=
-bird.y-bird.radius<rock.top||
-bird.y+bird.radius>rock.bottom;
+const hitsBottomImage=
+obstacleImageCollision(
+rock.bottomArt,
+rock.x,
+rock.bottom,
+rock.width,
+H-rock.bottom
+);
 
 if(
 reviveSafety<=0&&
-insideRockX&&
-outsideGap
+(
+hitsTopImage||
+hitsBottomImage
+)
 ){
 if(
 sunfireActive
