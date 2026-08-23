@@ -2372,20 +2372,6 @@ x.save();
 x.shadowColor=zone.edge;
 x.shadowBlur=10;
 
-/*
-Always draw a visible fallback first.
-This prevents missing image files from
-creating invisible obstacles.
-*/
-drawFallbackObstacle(
-areaX,
-areaY,
-areaWidth,
-areaHeight,
-side,
-zone
-);
-
 if(image){
 const imageRatio=
 image.width/image.height;
@@ -2421,6 +2407,15 @@ drawX,
 drawY,
 drawWidth,
 drawHeight
+);
+}else{
+drawFallbackObstacle(
+areaX,
+areaY,
+areaWidth,
+areaHeight,
+side,
+zone
 );
 }
 
