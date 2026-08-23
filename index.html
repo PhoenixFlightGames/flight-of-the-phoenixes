@@ -1220,7 +1220,10 @@ middle
 )
 );
 
-const width=150;
+const width=
+distance<2000
+?95+Math.random()*80
+:150;
 const top=middle-gap/2;
 const bottom=middle+gap/2;
 
