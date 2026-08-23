@@ -1571,6 +1571,52 @@ floatingObstacles.filter(
 floating=>floating.x+floating.width>-100
 );
 }
+function obstacleImageCollision(
+image,
+imageX,
+imageY,
+imageWidth,
+imageHeight
+){
+if(!image){
+return false;
+}
+
+const imageRatio=
+image.width/image.height;
+
+let drawWidth=imageWidth;
+let drawHeight=
+drawWidth/imageRatio;
+
+if(drawHeight>imageHeight){
+drawHeight=imageHeight;
+drawWidth=
+drawHeight*imageRatio;
+}
+
+const drawX=
+imageX+
+(imageWidth-drawWidth)/2;
+
+let drawY;
+
+if(imageY===0){
+drawY=imageY;
+}else{
+drawY=
+imageY+
+imageHeight-
+drawHeight;
+}
+
+return(
+bird.x+bird.radius>drawX&&
+bird.x-bird.radius<drawX+drawWidth&&
+bird.y+bird.radius>drawY&&
+bird.y-bird.radius<drawY+drawHeight
+);
+}
 
 function loop(now){
 if(!playing){
